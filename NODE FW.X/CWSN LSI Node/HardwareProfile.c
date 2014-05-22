@@ -58,6 +58,10 @@
     #include "CRModule/Messenger/Messenger.h"
 #endif
 
+#if defined SENSORS
+    #include "SensorsHAL.h"
+#endif
+
 #if defined(__PIC32MX__)
     /* MAX SPI CLOCK FREQ SUPPORTED FOR MIWI TRANSCIEVER */
     #if defined(MRF89XA)
@@ -414,6 +418,18 @@ void BoardInit(void){
                LED1 = 0;
                LED2 = 0;
                LED3 = 0;
+
+                #if defined SENSORS
+                    InitSensors();
+                    LedOn(GREEN);
+                    LedToggle(BOTH);
+                    LedToggle(GREEN);
+
+                if (getPIR() == TRUE) {
+                    LedToggle(BOTH);
+                }
+
+                #endif
                               
         #endif
 

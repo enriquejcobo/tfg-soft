@@ -23,7 +23,7 @@
 #if defined cNGD_PLATFORM
 
 
-//*********** CONSOLE INTERFACE *****************************************************
+//*********** CONSOLE INTERFACE ************************************************
 #if defined ENABLE_CONSOLE
 #define DEBUG_UART6
 //#define DEBUG_USB
@@ -39,6 +39,19 @@
 #define MRF49XA_1_USES_INT1
 
 #define MIWI_0434_RI
+
+//*********** SENSORS AND ACTUATORS ********************************************
+
+#define SENSORS
+
+// Select sensors and actuators included
+#ifdef SENSORS
+#define TEMP
+#define ACC
+#define LUM
+#define PIR
+#define BUZZ
+#endif
 
 //*********** INTERFACE N2 *****************************************************
 #define MRF49XA_2

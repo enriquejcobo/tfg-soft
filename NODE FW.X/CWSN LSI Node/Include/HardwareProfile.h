@@ -383,7 +383,20 @@
     #define HEADER_38_TRIS      TRISGbits.TRISG8
     #define HEADER_39           PORTBbits.RB4
     #define HEADER_39_TRIS      TRISBbits.TRISB4
-#endif
+
+
+    #if defined SENSORS
+        #define GREEN_LED_TRIS  TRISEbits.TRISE7 // Header 22
+        #define GREEN_LED       PORTEbits.RE7
+        #define RED_LED_TRIS    TRISEbits.TRISE5 // Header 23
+        #define RED_LED         PORTEbits.RE5
+
+        #if defined PIR
+            #define GPIO_PRES_TRIS          TRISEbits.TRISE6 // Header 35
+            #define GPIO_PRES               PORTEbits.RE6
+        #endif
+    #endif
+    #endif
 
 
 

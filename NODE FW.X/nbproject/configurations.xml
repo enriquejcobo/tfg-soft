@@ -86,6 +86,7 @@
         <itemPath>CWSN LSI Node/Include/Compiler.h</itemPath>
         <itemPath>CWSN LSI Node/Include/HardwareConfig.h</itemPath>
         <itemPath>CWSN LSI Node/Include/HardwareConfigValidation.h</itemPath>
+        <itemPath>CWSN LSI Node/Include/SensorsHAL.h</itemPath>
       </logicalFolder>
       <logicalFolder name="TCPIP Stack" displayName="TCPIP Stack" projectFiles="true">
       </logicalFolder>
@@ -131,6 +132,7 @@
       </logicalFolder>
       <itemPath>CWSN LSI Node/HardwareProfile.c</itemPath>
       <itemPath>CWSN LSI Node/NodeHAL.c</itemPath>
+      <itemPath>CWSN LSI Node/SensorsHAL.c</itemPath>
     </logicalFolder>
     <logicalFolder name="HeaderFiles"
                    displayName="Header Files"
