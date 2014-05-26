@@ -425,9 +425,13 @@ void BoardInit(void){
                     LedToggle(BOTH);
                     LedToggle(GREEN);
 
-                if (getPIR() == TRUE) {
-                    LedToggle(BOTH);
-                }
+                    if (getPIR() == TRUE) {
+                        LedToggle(BOTH);
+                    }
+
+                    if (getLum() < 0x0FF) {
+                        LedToggle(BOTH);
+                    }
 
                 #endif
                               

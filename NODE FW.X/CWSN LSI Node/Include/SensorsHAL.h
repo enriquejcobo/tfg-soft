@@ -31,6 +31,7 @@ BYTE LedOn(sensorLed sl);
 BYTE LedOff(sensorLed sl);
 BYTE LedToggle(sensorLed sl);
 BOOL getPIR();
+unsigned int getLum();
 
 //Power Management
 
