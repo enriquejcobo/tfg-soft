@@ -433,6 +433,10 @@ void BoardInit(void){
                         LedToggle(BOTH);
                     }
 
+                    if (getTemp() > 0x1000 ) {
+                        LedToggle(BOTH);
+                    }
+
                 #endif
                               
         #endif

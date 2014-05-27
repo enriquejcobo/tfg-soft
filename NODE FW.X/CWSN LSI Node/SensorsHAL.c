@@ -63,6 +63,13 @@ BYTE InitSensors(){
         GPIO_PRES_TRIS = INPUT_PIN;
     #endif
 
+    // TEMP y ACC (I2C)
+    #if defined ACC || defined TEMP
+        #define TempAddress (0x48)
+        #define AccAddress (0x1C)
+        OpenI2C2 (I2C_EN, (10000));
+    #endif
+
     // LUM
     #if defined LUM
         CloseADC10();
@@ -79,6 +86,45 @@ BYTE InitSensors(){
 
     return NO_ERROR;
 }
+
+/*******************************************************************************
+ * Function:    getTemp()
+ * Input:       None
+ * Output:      Ambient temperature.
+ * Overview:    Gets the temperature by using MCP9800.
+ ******************************************************************************/
+unsigned int getTemp (){
+
+    // Datos a mandar
+    char i2cData[3];
+    i2cData[0] = (TempAddress << 1) | 0; // Escritura
+    i2cData[1] = 0x00; //  Registro Temp. Ambiente
+    i2cData[2] = (TempAddress << 1) | 1; // Lectura
+
+    // Comunicación
+    StartI2C2(); // Abrimos i2c
+    IdleI2C2(); // wait to complete
+    MasterWriteI2C2(i2cData[0]); // TEMP address y escribir
+    IdleI2C2();
+    MasterWriteI2C2(i2cData[1]); // Registro a escribir
+    IdleI2C2();
+    RestartI2C2();
+    IdleI2C2();
+    MasterWriteI2C2(i2cData[2]); // TEMP address y leer
+    IdleI2C2();
+
+    // Leer datos
+    unsigned int temp;
+    temp = (MasterReadI2C2() << 8);
+    AckI2C2();
+    IdleI2C2();
+    temp = temp + MasterReadI2C2();
+    StopI2C2();
+    IdleI2C2();
+
+    return temp;
+}
+
 
 /*******************************************************************************
  * Function:    getLum()
