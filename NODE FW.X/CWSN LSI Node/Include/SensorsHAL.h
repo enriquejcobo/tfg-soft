@@ -33,6 +33,7 @@ BYTE LedToggle(sensorLed sl);
 BOOL getPIR();
 unsigned int getLum();
 unsigned int getTemp();
+void setTempResolution(int res);
 
 //Power Management
 

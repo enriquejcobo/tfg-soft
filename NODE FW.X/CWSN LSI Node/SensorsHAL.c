@@ -127,6 +127,40 @@ unsigned int getTemp (){
 
 
 /*******************************************************************************
+ * Function:    setTempResolution()
+ * Input:       None
+ * Output:      Ambient temperature.
+ * Overview:    Gets the temperature by using MCP9800.
+ ******************************************************************************/
+void setTempResolution (int res){
+
+    if (res < 0 || res > 3) {
+        return ;
+    }
+
+    // Datos a mandar
+    char i2cData[3];
+    i2cData[0] = (TempAddress << 1) | 0; // Escritura
+    i2cData[1] = 0x01; //  Registro Configuración
+    i2cData[2] = (res << 5); // Escritura resolución
+
+    // Comunicación
+    StartI2C2(); // Abrimos i2c
+    IdleI2C2(); // wait to complete
+    MasterWriteI2C2(i2cData[0]); // TEMP address y escribir
+    IdleI2C2();
+    MasterWriteI2C2(i2cData[1]); // Registro a escribir
+    IdleI2C2();
+    MasterWriteI2C2(i2cData[2]); // TEMP address y leer
+    IdleI2C2();
+    StopI2C2();
+    IdleI2C2();
+
+    return ;
+}
+
+
+/*******************************************************************************
  * Function:    getLum()
  * Input:       None
  * Output:      10-bits representing brightness level.
