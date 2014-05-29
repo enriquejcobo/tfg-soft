@@ -427,6 +427,7 @@ void BoardInit(void){
 
                     if (getPIR() == TRUE) {
                         LedToggle(BOTH);
+                        buzzerOn();
                     }
 
                     if (getLum() < 0x0FF) {

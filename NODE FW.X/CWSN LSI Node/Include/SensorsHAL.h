@@ -34,6 +34,8 @@ BOOL getPIR();
 unsigned int getLum();
 unsigned int getTemp();
 void setTempResolution(int res);
+void buzzerOn();
+void buzzerOff();
 
 //Power Management
 

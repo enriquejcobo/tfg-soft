@@ -21,11 +21,6 @@
 
 /* DEFINITIONS ****************************************************************/
 
-// Switch on I2C if included TEMP or ACC
-#if defined TEMP || defined ACC
-    #define I2C2
-#endif
-
 // Switch on ADC if included LUM
 #if defined LUM
     #define PARAM1 (ADC_MODULE_ON | ADC_FORMAT_INTG | ADC_CLK_AUTO | ADC_AUTO_SAMPLING_ON)
@@ -44,6 +39,8 @@
 //UINT32 SleepEventCounter;
 //unsigned int coreTMRvals[11];
 //BYTE coreTMRptr;
+BOOL isBuzzing;
+int setBuzzer;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -57,6 +54,18 @@
  * Overview: Sensor initialization function.
  ******************************************************************************/
 BYTE InitSensors(){
+
+    // BUZZER (TIMER5)
+    #if defined BUZZ
+     // WORD TiempoT5 = 2; //En useg;
+     // WORD T5_TICK = (CLOCK_FREQ/8/256/4350);
+        WORD T5_TICK = 0X8B;
+        OpenTimer5(T5_ON | T1_IDLE_CON | T5_GATE_OFF | T5_PS_1_32 | T5_SOURCE_INT, T5_TICK);
+        ConfigIntTimer5(T5_INT_ON | T5_INT_PRIOR_2);
+        GPIO_BUZZ_TRIS = OUTPUT_PIN;
+        GPIO_BUZZ = 0;
+        isBuzzing = FALSE;
+    #endif
 
     // PIR
     #if defined PIR
@@ -85,6 +94,32 @@ BYTE InitSensors(){
     RED_LED = 0;
 
     return NO_ERROR;
+}
+
+/*******************************************************************************
+ * Function:    buzzerOn()
+ * Input:       None
+ * Output:      None.
+ * Overview:    Switchs the buzzer on.
+ ******************************************************************************/
+void buzzerOn() {
+
+    isBuzzing = TRUE;
+    return ;
+
+}
+
+/*******************************************************************************
+ * Function:    buzzerOff()
+ * Input:       None
+ * Output:      None.
+ * Overview:    Switchs the buzzer off.
+ ******************************************************************************/
+void buzzerOff() {
+
+    isBuzzing = FALSE;
+    return ;
+
 }
 
 /*******************************************************************************
@@ -265,3 +300,13 @@ BYTE LedToggle (sensorLed sl){
  * Output:      Returns the byte containing the status flags.
  * Overview:    Simple function to get (read) the status flags.
  ******************************************************************************/
+void __ISR(_TIMER_5_VECTOR, ipl2)buzzer(void) {
+    
+    mT5ClearIntFlag();
+
+    if (isBuzzing) {
+        setBuzzer = (setBuzzer + 1)%2;
+        GPIO_BUZZ = setBuzzer;
+    }
+
+}

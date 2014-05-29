@@ -395,6 +395,11 @@
             #define GPIO_PRES_TRIS          TRISEbits.TRISE6 // Header 35
             #define GPIO_PRES               PORTEbits.RE6
         #endif
+
+        #if defined BUZZ
+            #define GPIO_BUZZ_TRIS          TRISBbits.TRISB3 // Header 2
+            #define GPIO_BUZZ               PORTBbits.RB3
+        #endif
     #endif
     #endif
 
