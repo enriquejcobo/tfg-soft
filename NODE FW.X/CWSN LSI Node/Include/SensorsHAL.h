@@ -30,10 +30,19 @@ BYTE InitSensors();
 BYTE LedOn(sensorLed sl);
 BYTE LedOff(sensorLed sl);
 BYTE LedToggle(sensorLed sl);
+
 BOOL getPIR();
+
 unsigned int getLum();
+
 unsigned int getTemp();
 void setTempResolution(int res);
+
+void getAcc();
+int getAccX();
+int getAccY();
+int getAccZ();
+
 void buzzerOn();
 void buzzerOff();
 

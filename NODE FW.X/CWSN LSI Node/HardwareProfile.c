@@ -438,6 +438,12 @@ void BoardInit(void){
                     setTempResolution(2);
                     setTempResolution(0);
 
+            //        getAcc();
+            //        int a;
+            //        a = getAccX();
+             //       a = getAccY();
+              //      a = getAccZ();
+
                     if (getTemp() > 0x1000 ) {
                         LedToggle(BOTH);
                     }

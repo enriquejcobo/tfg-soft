@@ -43,6 +43,7 @@ BOOL isBuzzing;
 int setBuzzer;
 char tempConf;
 
+int accX, accY, accZ;
 
 ////////////////////////////////////////////////////////////////////////////////
 /****************   HAL FUNCTIONS (FOR THE APPLICATION CODE)   ****************/
@@ -163,6 +164,85 @@ unsigned int getTemp (){
     IdleI2C2();
 
     return temp;
+}
+
+/*******************************************************************************
+ * Function:    getAcc()
+ * Input:       None
+ * Output:      None.
+ * Overview:    Gets the acceleration by using MMA8453Q, and is saved.
+ ******************************************************************************/
+void getAcc() {
+
+    // Datos a mandar
+    char i2cData[3];
+    i2cData[0] = (AccAddress << 1) | 0; // Escritura
+    i2cData[1] = 0x00; //  Registro Temp. Ambiente
+    i2cData[2] = (AccAddress << 1) | 1; // Lectura
+
+    // Comunicación
+    StartI2C2(); // Abrimos i2c
+    IdleI2C2(); // wait to complete
+    MasterWriteI2C2(i2cData[0]); // TEMP address y escribir
+    IdleI2C2();
+    MasterWriteI2C2(i2cData[1]); // Registro a escribir
+    IdleI2C2();
+    AckI2C2();
+    IdleI2C2();
+    RestartI2C2();
+    IdleI2C2();
+    MasterWriteI2C2(i2cData[2]); // TEMP address y leer
+    IdleI2C2();
+
+    // Leer datos
+    accX = MasterReadI2C2();
+    AckI2C2();
+    IdleI2C2();
+    accY = MasterReadI2C2();
+    AckI2C2();
+    IdleI2C2();
+    accZ = MasterReadI2C2();
+    IdleI2C2();
+    StopI2C2();
+    IdleI2C2();
+
+    return ;
+}
+
+
+/*******************************************************************************
+ * Function:    getAccX()
+ * Input:       None
+ * Output:      Acceleration in X axis.
+ * Overview:    Once the acceleration has been saved, read it.
+ ******************************************************************************/
+int getAccX() {
+
+    return accX ;
+}
+
+
+/*******************************************************************************
+ * Function:    getAccY()
+ * Input:       None
+ * Output:      Acceleration in Y axis.
+ * Overview:    Once the acceleration has been saved, read it.
+ ******************************************************************************/
+int getAccY() {
+
+    return accY ;
+}
+
+
+/*******************************************************************************
+ * Function:    getAccZ()
+ * Input:       None
+ * Output:      Acceleration in Z axis.
+ * Overview:    Once the acceleration has been saved, read it.
+ ******************************************************************************/
+int getAccZ() {
+
+    return accZ ;
 }
 
 /*******************************************************************************
