@@ -424,10 +424,11 @@ void BoardInit(void){
                     LedOn(GREEN);
                     LedToggle(BOTH);
                     LedToggle(GREEN);
+                    buzzerOn();
 
                     if (getPIR() == TRUE) {
                         LedToggle(BOTH);
-                        buzzerOn();
+
                     }
 
                     if (getLum() < 0x0FF) {
@@ -435,6 +436,7 @@ void BoardInit(void){
                     }
 
                     setTempResolution(2);
+                    setTempResolution(0);
 
                     if (getTemp() > 0x1000 ) {
                         LedToggle(BOTH);

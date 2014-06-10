@@ -41,6 +41,7 @@
 //BYTE coreTMRptr;
 BOOL isBuzzing;
 int setBuzzer;
+char tempConf;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -77,6 +78,10 @@ BYTE InitSensors(){
         #define TempAddress (0x48)
         #define AccAddress (0x1C)
         OpenI2C2 (I2C_EN, (10000));
+    #endif
+
+    #if defined TEMP
+        tempConf = 0x00;
     #endif
 
     // LUM
@@ -160,6 +165,34 @@ unsigned int getTemp (){
     return temp;
 }
 
+/*******************************************************************************
+ * Function:    setTempConf() // PRIVATE
+ * Input:       None
+ * Output:      None.
+ * Overview:    Modifies the configuration register.
+ ******************************************************************************/
+void setTempConf() {
+
+    // Datos a mandar
+    char i2cData[3];
+    i2cData[0] = (TempAddress << 1) | 0; // Escritura
+    i2cData[1] = 0x01; //  Registro Configuración
+    i2cData[2] = tempConf; // Escritura del registro
+
+    // Comunicación
+    StartI2C2(); // Abrimos i2c
+    IdleI2C2(); // wait to complete
+    MasterWriteI2C2(i2cData[0]); // TEMP address y escribir
+    IdleI2C2();
+    MasterWriteI2C2(i2cData[1]); // Registro a escribir
+    IdleI2C2();
+    MasterWriteI2C2(i2cData[2]); // Modificar el dato
+    IdleI2C2();
+    StopI2C2();
+    IdleI2C2();
+
+    return ;
+}
 
 /*******************************************************************************
  * Function:    setTempResolution()
@@ -173,27 +206,21 @@ void setTempResolution (int res){
         return ;
     }
 
-    // Datos a mandar
-    char i2cData[3];
-    i2cData[0] = (TempAddress << 1) | 0; // Escritura
-    i2cData[1] = 0x01; //  Registro Configuración
-    i2cData[2] = (res << 5); // Escritura resolución
+    char mascara;
 
-    // Comunicación
-    StartI2C2(); // Abrimos i2c
-    IdleI2C2(); // wait to complete
-    MasterWriteI2C2(i2cData[0]); // TEMP address y escribir
-    IdleI2C2();
-    MasterWriteI2C2(i2cData[1]); // Registro a escribir
-    IdleI2C2();
-    MasterWriteI2C2(i2cData[2]); // TEMP address y leer
-    IdleI2C2();
-    StopI2C2();
-    IdleI2C2();
+    // Reseteamos los valores antiguos
+    mascara = 0b10011111;
+    tempConf = tempConf & mascara;
+
+    // Aplicamos la máscara con el valor actual del registro
+    // y lo guardamos de nuevo
+    mascara = (res << 5); // Bits que ocupa
+    tempConf = tempConf | mascara;
+
+    setTempConf(); //Realiza la comunicación
 
     return ;
 }
-
 
 /*******************************************************************************
  * Function:    getLum()
