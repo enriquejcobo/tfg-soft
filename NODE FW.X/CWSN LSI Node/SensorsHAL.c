@@ -40,7 +40,9 @@
 //unsigned int coreTMRvals[11];
 //BYTE coreTMRptr;
 BOOL isBuzzing;
-int setBuzzer;
+int cntBuzzer;
+int nota2;
+int sound;
 char tempConf;
 
 int accX, accY, accZ;
@@ -61,7 +63,7 @@ BYTE InitSensors(){
     #if defined BUZZ
      // WORD TiempoT5 = 2; //En useg;
      // WORD T5_TICK = (CLOCK_FREQ/8/256/4350);
-        WORD T5_TICK = 0X8B;
+        WORD T5_TICK = 0x22;
         OpenTimer5(T5_ON | T1_IDLE_CON | T5_GATE_OFF | T5_PS_1_32 | T5_SOURCE_INT, T5_TICK);
         ConfigIntTimer5(T5_INT_ON | T5_INT_PRIOR_2);
         GPIO_BUZZ_TRIS = OUTPUT_PIN;
@@ -310,8 +312,12 @@ void setTempResolution (int res){
  ******************************************************************************/
 unsigned int getLum (){
 
+    unsigned int resultado;
+    int i;
+    for (i = 0; i<10; i++) {
     unsigned int offset = 8* ((~ReadActiveBufferADC10() & 0x01));
-    return (ReadADC10(offset));
+    resultado = (ReadADC10(offset));}
+    return resultado;
     
 }
 
@@ -412,8 +418,21 @@ void __ISR(_TIMER_5_VECTOR, ipl2)buzzer(void) {
     mT5ClearIntFlag();
 
     if (isBuzzing) {
-        setBuzzer = (setBuzzer + 1)%2;
-        GPIO_BUZZ = setBuzzer;
+        cntBuzzer++;
+        if (nota2) {
+            if (cntBuzzer % 4 == 0)
+                sound = (sound+1)%2;
+        } else {
+            if (cntBuzzer % 3 == 0)
+                sound = (sound+1)%2;
+        }
+
+        GPIO_BUZZ = sound;
+
+        if (cntBuzzer == 10000) {
+            nota2 = (nota2+1)%2;
+            cntBuzzer = 0;
+        }
     }
 
 }
