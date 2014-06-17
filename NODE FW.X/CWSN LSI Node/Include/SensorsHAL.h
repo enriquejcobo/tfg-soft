@@ -36,7 +36,12 @@ BOOL getPIR();
 unsigned int getLum();
 
 unsigned int getTemp();
+unsigned int getTempConf();
+BOOL getTempAlert();
 void setTempResolution(int res);
+void setTempLowPower();
+void setTempAlert(int reg, INT8 alert);
+
 
 void getAcc();
 int getAccX();

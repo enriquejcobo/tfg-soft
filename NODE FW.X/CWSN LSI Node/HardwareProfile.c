@@ -424,19 +424,25 @@ void BoardInit(void){
                     LedOn(GREEN);
                     LedToggle(BOTH);
                     LedToggle(GREEN);
+                    LedOff(BOTH);
                     buzzerOn();
 
-
-
                     if (getPIR() == TRUE) {
-                        LedToggle(BOTH);
+                        LedOn(GREEN);
                     }
+
                     if (getLum() < 0x0FF) {
-                        LedToggle(BOTH);
+                        LedOn(RED);
                     }
 
 
                     setTempResolution(2);
+                    getTempConf();
+                    setTempAlert(3, 50);
+                    setTempAlert(2, 0);
+                    getTempConf();
+                    setTempLowPower();
+
              //       setTempResolution(0);
 
             //        getAcc();
@@ -444,11 +450,14 @@ void BoardInit(void){
             //        a = getAccX();
              //       a = getAccY();
               //      a = getAccZ();
-
+                 //   while (1) {
                     if (getTemp() > 0x1000 ) {
                         LedToggle(BOTH);
                     }
-
+                    if (getTempAlert()) {
+                        LedOff(BOTH);
+                    }
+                   // }
                 #endif
                               
         #endif

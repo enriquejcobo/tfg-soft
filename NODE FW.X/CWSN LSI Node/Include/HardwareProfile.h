@@ -400,6 +400,11 @@
             #define GPIO_BUZZ_TRIS          TRISBbits.TRISB3 // Header 2
             #define GPIO_BUZZ               PORTBbits.RB3
         #endif
+
+        #if defined TEMP
+            #define TEMP_ALERT_TRIS         TRISBbits.TRISB15 // Header 16
+            #define TEMP_ALERT              PORTBbits.RB15
+        #endif
     #endif
     #endif
 

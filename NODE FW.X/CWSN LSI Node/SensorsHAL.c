@@ -47,6 +47,11 @@ char tempConf;
 
 int accX, accY, accZ;
 
+int isTempLowPower;
+int cntTemp;
+INT8 tempAlertMin;
+INT8 tempAlertMax;
+
 ////////////////////////////////////////////////////////////////////////////////
 /****************   HAL FUNCTIONS (FOR THE APPLICATION CODE)   ****************/
 ////////////////////////////////////////////////////////////////////////////////
@@ -66,6 +71,7 @@ BYTE InitSensors(){
         WORD T5_TICK = 0x22;
         OpenTimer5(T5_ON | T1_IDLE_CON | T5_GATE_OFF | T5_PS_1_32 | T5_SOURCE_INT, T5_TICK);
         ConfigIntTimer5(T5_INT_ON | T5_INT_PRIOR_2);
+        AD1PCFGSET = 0x0008; // Al ser multiplexado con ADCs hay que forzar
         GPIO_BUZZ_TRIS = OUTPUT_PIN;
         GPIO_BUZZ = 0;
         isBuzzing = FALSE;
@@ -85,6 +91,10 @@ BYTE InitSensors(){
 
     #if defined TEMP
         tempConf = 0x00;
+        #define tempReg (0x00)
+        #define tempConfReg (0x01)
+        AD1PCFGSET = 0x8000; // Al ser multiplexado con ADCs hay que forzar
+        TEMP_ALERT_TRIS = INPUT_PIN;
     #endif
 
     // LUM
@@ -103,6 +113,10 @@ BYTE InitSensors(){
 
     return NO_ERROR;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+/********************************** BUZZER ************************************/
+////////////////////////////////////////////////////////////////////////////////
 
 /*******************************************************************************
  * Function:    buzzerOn()
@@ -130,43 +144,9 @@ void buzzerOff() {
 
 }
 
-/*******************************************************************************
- * Function:    getTemp()
- * Input:       None
- * Output:      Ambient temperature.
- * Overview:    Gets the temperature by using MCP9800.
- ******************************************************************************/
-unsigned int getTemp (){
-
-    // Datos a mandar
-    char i2cData[3];
-    i2cData[0] = (TempAddress << 1) | 0; // Escritura
-    i2cData[1] = 0x00; //  Registro Temp. Ambiente
-    i2cData[2] = (TempAddress << 1) | 1; // Lectura
-
-    // Comunicación
-    StartI2C2(); // Abrimos i2c
-    IdleI2C2(); // wait to complete
-    MasterWriteI2C2(i2cData[0]); // TEMP address y escribir
-    IdleI2C2();
-    MasterWriteI2C2(i2cData[1]); // Registro a escribir
-    IdleI2C2();
-    RestartI2C2();
-    IdleI2C2();
-    MasterWriteI2C2(i2cData[2]); // TEMP address y leer
-    IdleI2C2();
-
-    // Leer datos
-    unsigned int temp;
-    temp = (MasterReadI2C2() << 8);
-    AckI2C2();
-    IdleI2C2();
-    temp = temp + MasterReadI2C2();
-    StopI2C2();
-    IdleI2C2();
-
-    return temp;
-}
+////////////////////////////////////////////////////////////////////////////////
+/****************************** ACCELEROMETER *********************************/
+////////////////////////////////////////////////////////////////////////////////
 
 /*******************************************************************************
  * Function:    getAcc()
@@ -247,6 +227,10 @@ int getAccZ() {
     return accZ ;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+/******************************* TEMPERATURE **********************************/
+////////////////////////////////////////////////////////////////////////////////
+
 /*******************************************************************************
  * Function:    setTempConf() // PRIVATE
  * Input:       None
@@ -258,7 +242,7 @@ void setTempConf() {
     // Datos a mandar
     char i2cData[3];
     i2cData[0] = (TempAddress << 1) | 0; // Escritura
-    i2cData[1] = 0x01; //  Registro Configuración
+    i2cData[1] = tempConfReg; //  Registro Configuración
     i2cData[2] = tempConf; // Escritura del registro
 
     // Comunicación
@@ -274,6 +258,86 @@ void setTempConf() {
     IdleI2C2();
 
     return ;
+}
+
+/*******************************************************************************
+ * Function:    getTempRegister()
+ * Input:       None
+ * Output:      Ambient temperature.
+ * Overview:    Gets the temperature by using MCP9800.
+ ******************************************************************************/
+void getTempRegister (unsigned int reg){
+
+    // Datos a mandar
+    char i2cData[3];
+    i2cData[0] = (TempAddress << 1) | 0; // Escritura
+    i2cData[1] = reg; //  Registro
+    i2cData[2] = (TempAddress << 1) | 1; // Lectura
+
+    // Comunicación
+    StartI2C2(); // Abrimos i2c
+    IdleI2C2(); // wait to complete
+    MasterWriteI2C2(i2cData[0]); // TEMP address y escribir
+    IdleI2C2();
+    MasterWriteI2C2(i2cData[1]); // Registro a escribir
+    IdleI2C2();
+    RestartI2C2();
+    IdleI2C2();
+    MasterWriteI2C2(i2cData[2]); // TEMP address y leer
+    IdleI2C2();
+
+}
+
+/*******************************************************************************
+ * Function:    getTempConf()
+ * Input:       None
+ * Output:      Ambient temperature.
+ * Overview:    Gets the temperature by using MCP9800.
+ ******************************************************************************/
+unsigned int getTempConf() {
+
+    getTempRegister(tempConfReg);
+
+    // Leer datos
+    unsigned int valor;
+    valor = MasterReadI2C2();
+
+    //Cerrar I2C
+    StopI2C2();
+    IdleI2C2();
+
+    return valor;
+}
+
+/*******************************************************************************
+ * Function:    getTemp()
+ * Input:       None
+ * Output:      Ambient temperature.
+ * Overview:    Gets the temperature by using MCP9800.
+ ******************************************************************************/
+unsigned int getTemp (){
+
+    if (isTempLowPower) {
+        tempConf = tempConf | 0b10000000;
+        setTempConf();
+        cntTemp++;
+        // Esperar a que se produzca la medida
+        // Tienen que estar habilitadas las interrupciones
+        // while (cntTemp){}
+    }
+
+    getTempRegister(tempReg);
+
+    // Leer datos
+    unsigned int temp;
+    temp = (MasterReadI2C2() << 8);
+    AckI2C2();
+    IdleI2C2();
+    temp = temp + MasterReadI2C2();
+    StopI2C2();
+    IdleI2C2();
+
+    return temp;
 }
 
 /*******************************************************************************
@@ -305,6 +369,88 @@ void setTempResolution (int res){
 }
 
 /*******************************************************************************
+ * Function:    setTempResolution()
+ * Input:       None
+ * Output:      Ambient temperature.
+ * Overview:    Gets the temperature by using MCP9800.
+ ******************************************************************************/
+void setTempAlert (int reg, INT8 alert){
+
+    if (reg < 2 || reg > 3) {
+        return ;
+    }
+
+    // Datos a mandar
+    char i2cData[3];
+    i2cData[0] = (TempAddress << 1) | 0; // Escritura
+    i2cData[1] = reg; //  Registro Configuración
+    i2cData[2] = alert; // Escritura del registro
+
+    // Comunicación
+    StartI2C2(); // Abrimos i2c
+    IdleI2C2(); // wait to complete
+    MasterWriteI2C2(i2cData[0]); // TEMP address y escribir
+    IdleI2C2();
+    MasterWriteI2C2(i2cData[1]); // Registro a escribir
+    IdleI2C2();
+    MasterWriteI2C2(i2cData[2]); // Modificar el dato
+    IdleI2C2();
+    MasterWriteI2C2(0x00); // Modificar el dato
+    IdleI2C2();
+    StopI2C2();
+    IdleI2C2();
+
+    return ;
+}
+
+/*******************************************************************************
+ * Function:    setTempResolution()
+ * Input:       None
+ * Output:      Ambient temperature.
+ * Overview:    Gets the temperature by using MCP9800.
+ ******************************************************************************/
+void setTempLowPower (){
+
+    if (isTempLowPower == 0) {
+        char mascara;
+
+        // Reseteamos los valores antiguos
+        mascara = 0b01111110;
+        tempConf = tempConf & mascara;
+
+        // Aplicamos la máscara con el valor actual del registro
+        // y lo guardamos de nuevo
+        mascara = 1; // Bits que ocupa
+        tempConf = tempConf | mascara;
+        setTempConf(); //Realiza la comunicación
+
+        isTempLowPower = 1;
+    }
+
+    return ;
+}
+
+/*******************************************************************************
+ * Function:    getTempAlert()
+ * Input:       None
+ * Output:      NO_ERROR if correct.
+ * Overview:    Get 'TRUE' if alert. 'FALSE' if no alert.
+ ******************************************************************************/
+BOOL getTempAlert (){
+
+    // Activo a nivel bajo
+    if (TEMP_ALERT == 0) {
+        return TRUE;
+    }
+    return FALSE;
+
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/******************************* LUMINOSITY ***********************************/
+////////////////////////////////////////////////////////////////////////////////
+
+/*******************************************************************************
  * Function:    getLum()
  * Input:       None
  * Output:      10-bits representing brightness level.
@@ -321,6 +467,9 @@ unsigned int getLum (){
     
 }
 
+////////////////////////////////////////////////////////////////////////////////
+/******************************** PRESENCE ************************************/
+////////////////////////////////////////////////////////////////////////////////
 
 /*******************************************************************************
  * Function:    getPIR()
@@ -337,6 +486,9 @@ BOOL getPIR (){
 
 }
 
+////////////////////////////////////////////////////////////////////////////////
+/************************************ LEDS ************************************/
+////////////////////////////////////////////////////////////////////////////////
 
 /*******************************************************************************
  * Function:    LedOn(sensorLed sl)
@@ -407,6 +559,10 @@ BYTE LedToggle (sensorLed sl){
         }
 }
 
+////////////////////////////////////////////////////////////////////////////////
+/************************* TIMER INTERRUPTIONS ********************************/
+////////////////////////////////////////////////////////////////////////////////
+
 /*******************************************************************************
  * Function:    FuncionDePrueba()
  * Input:       None
@@ -416,6 +572,10 @@ BYTE LedToggle (sensorLed sl){
 void __ISR(_TIMER_5_VECTOR, ipl2)buzzer(void) {
     
     mT5ClearIntFlag();
+
+    if (cntTemp) cntTemp++;
+
+    if (cntTemp == 100) cntTemp = 0;
 
     if (isBuzzing) {
         cntBuzzer++;
