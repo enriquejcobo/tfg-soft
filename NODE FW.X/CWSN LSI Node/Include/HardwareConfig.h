@@ -51,6 +51,7 @@
 #define LUM
 #define PIR
 #define BUZZ
+#define IR
 #endif
 
 //*********** INTERFACE N2 *****************************************************

@@ -392,8 +392,13 @@
         #define RED_LED         PORTEbits.RE5
 
         #if defined PIR
-            #define GPIO_PRES_TRIS          TRISEbits.TRISE6 // Header 35
-            #define GPIO_PRES               PORTEbits.RE6
+            #define GPIO_PRES_TRIS          TRISDbits.TRISD6 // Header 35
+            #define GPIO_PRES               PORTDbits.RD6
+        #endif
+
+        #if defined IR
+            #define GPIO_IR_TRIS          TRISCbits.TRISC1 // Header 36
+            #define GPIO_IR               PORTCbits.RC1
         #endif
 
         #if defined BUZZ

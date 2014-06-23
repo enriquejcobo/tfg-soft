@@ -25,6 +25,7 @@ typedef enum{
 ////////////////////////////////////////////////////////////////////////////////
 //Initialization
 BYTE InitSensors();
+#define NBUFFER 10
 
 //Configuration
 BYTE LedOn(sensorLed sl);
@@ -42,6 +43,7 @@ void setTempResolution(int res);
 void setTempLowPower();
 void setTempAlert(int reg, INT8 alert);
 
+void sendIR(UINT8 address, UINT8 command);
 
 void getAcc();
 int getAccX();

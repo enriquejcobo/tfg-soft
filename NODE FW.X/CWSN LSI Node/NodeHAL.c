@@ -4592,7 +4592,7 @@ static BYTE SendMIWI(miwi_band mb, BOOL isBroadcast, BYTE *Address, BOOL isLongA
 
 //        SWDelay(7000);
     }
-
+    #ifndef SENSORS
     void __ISR(_CHANGE_NOTICE_VECTOR, ipl6) _CN_Interrupt_ISR(void){
         WDTCONCLR = 0x8000;         //Disable WDT, just in case.
         unsigned int readValue;
@@ -4602,6 +4602,8 @@ static BYTE SendMIWI(miwi_band mb, BOOL isBroadcast, BYTE *Address, BOOL isLongA
             IEC1CLR = 0x00000001;   //Disable the CN Interrupt..
         }
     }
+    #endif
+
 ////////////////////////////////////////////////////////////////////////////////
 #endif
 //END OF INTERRUPTION SERVICE ROUTINES /////////////////////////////////////////

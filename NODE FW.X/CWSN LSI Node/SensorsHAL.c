@@ -39,6 +39,18 @@
 //UINT32 SleepEventCounter;
 //unsigned int coreTMRvals[11];
 //BYTE coreTMRptr;
+
+UINT8 IRAddress [NBUFFER];
+UINT8 IRCommand [NBUFFER];
+int nocup;
+int puntero;
+int IRcontador;
+int IRestado;
+int IRindex;
+
+int mimascara;
+
+
 BOOL isBuzzing;
 int cntBuzzer;
 int nota2;
@@ -51,6 +63,8 @@ int isTempLowPower;
 int cntTemp;
 INT8 tempAlertMin;
 INT8 tempAlertMax;
+
+int isPresence;
 
 ////////////////////////////////////////////////////////////////////////////////
 /****************   HAL FUNCTIONS (FOR THE APPLICATION CODE)   ****************/
@@ -66,19 +80,27 @@ BYTE InitSensors(){
 
     // BUZZER (TIMER5)
     #if defined BUZZ
-     // WORD TiempoT5 = 2; //En useg;
-     // WORD T5_TICK = (CLOCK_FREQ/8/256/4350);
-        WORD T5_TICK = 0x22;
-        OpenTimer5(T5_ON | T1_IDLE_CON | T5_GATE_OFF | T5_PS_1_32 | T5_SOURCE_INT, T5_TICK);
-        ConfigIntTimer5(T5_INT_ON | T5_INT_PRIOR_2);
+    //  WORD TiempoT5 = 2; //En useg;
+      WORD T5_TICK = (CLOCK_FREQ/8/8/38000);
+     //   WORD T5_TICK = 0x22;
+        OpenTimer5(T5_ON | T5_IDLE_CON | T5_GATE_OFF | T5_PS_1_8 | T5_SOURCE_INT, T5_TICK);
+        ConfigIntTimer5(T5_INT_ON | T5_INT_PRIOR_5);
         AD1PCFGSET = 0x0008; // Al ser multiplexado con ADCs hay que forzar
         GPIO_BUZZ_TRIS = OUTPUT_PIN;
         GPIO_BUZZ = 0;
         isBuzzing = FALSE;
     #endif
 
+     #if defined IR
+        GPIO_IR_TRIS = OUTPUT_PIN;
+        GPIO_IR = 0;
+    #endif
+
     // PIR
     #if defined PIR
+        mCNOpen(CN_ON | CN_IDLE_CON, CN15_ENABLE, CN_PULLUP_DISABLE_ALL);
+        mPORTDRead(); //Vaciar
+        ConfigIntCN(CHANGE_INT_ON | CHANGE_INT_PRI_6);
         GPIO_PRES_TRIS = INPUT_PIN;
     #endif
 
@@ -112,6 +134,152 @@ BYTE InitSensors(){
     RED_LED = 0;
 
     return NO_ERROR;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/********************************** IR ****************************************/
+////////////////////////////////////////////////////////////////////////////////
+
+/*******************************************************************************
+ * Function:    sendIR(int address, int command)
+ * Input:       None
+ * Output:      None.
+ * Overview:    Switchs the buzzer on.
+ ******************************************************************************/
+void sendIR(UINT8 address, UINT8 command) {
+
+    if (nocup == 10) return; // Si no hay hueco lo borramos
+
+    IRAddress[(puntero+nocup) % NBUFFER] = address;
+    IRCommand[(puntero+nocup) % NBUFFER] = command;
+
+    nocup++;
+
+}
+
+/*******************************************************************************
+ * Function:    sendIR(int address, int command)
+ * Input:       None
+ * Output:      None.
+ * Overview:    Switchs the buzzer on.
+ ******************************************************************************/
+int mandarCero() {
+
+    if (++IRcontador < 44) {
+        GPIO_IR ^= 0x0001;
+        return 0;
+    }
+    if (++IRcontador < 88) {
+        GPIO_IR = 0;
+        return 0;
+    }
+    IRcontador = 0;
+    return 1;
+
+}
+
+/*******************************************************************************
+ * Function:    sendIR(int address, int command)
+ * Input:       None
+ * Output:      None.
+ * Overview:    Switchs the buzzer on.
+ ******************************************************************************/
+int mandarUno() {
+
+    if (++IRcontador < 44) {
+        GPIO_IR ^= 0x0001;
+        return 0;
+    }
+    if (++IRcontador < 176) {
+        GPIO_IR = 0;
+        return 0;
+    }
+    IRcontador = 0;
+    return 1;
+
+}
+
+/*******************************************************************************
+ * Function:    sendIR(int address, int command)
+ * Input:       None
+ * Output:      None.
+ * Overview:    Switchs the buzzer on.
+ ******************************************************************************/
+void protocoloNEC () {
+
+    int nextEstado;
+    int aMandar;
+    int final;
+
+    nextEstado = IRestado;
+    switch(IRestado) {
+        case 0: // Arranque
+            GPIO_IR ^= 0x0001; // Ráfaga
+            if (++IRcontador == 704) {
+                nextEstado = 1;
+                IRcontador = 0;
+            }
+            break;
+        case 1: // Espera
+            GPIO_IR = 0; // Silencio
+            if (++IRcontador == 352) {
+                nextEstado = 2;
+                IRcontador = 0;
+            }
+            break;
+        case 2: //Envío address
+            aMandar = (IRAddress[puntero] & (1 << IRindex));
+            if (aMandar) final = mandarUno();
+            else final = mandarCero();
+            if (final && ++IRindex == 8) {
+                nextEstado = 3;
+                IRindex = 0;
+                IRcontador = 0;
+            }
+            break;
+        case 3: //Envío address negada
+            aMandar = (IRAddress[puntero] & (1 << IRindex));
+            if (!aMandar) final = mandarUno();
+            else final = mandarCero();
+            if (final && (++IRindex == 8)) {
+                nextEstado = 4;
+                IRindex = 0;
+                IRcontador = 0;
+            }
+            break;
+        case 4: //Envío command
+            aMandar = (IRCommand[puntero] & (1 << IRindex));
+            if (aMandar) final = mandarUno();
+            else final = mandarCero();
+            if (final && (++IRindex == 8)) {
+                nextEstado = 5;
+                IRindex = 0;
+                IRcontador = 0;
+            }
+            break;
+        case 5: //Envío command negada
+            aMandar = (IRCommand[puntero] & (1 << IRindex));
+            if (!aMandar) final = mandarUno();
+            else final = mandarCero();
+            if (final && (++IRindex == 8)) {
+                nextEstado = 6;
+                IRindex = 0;
+                IRcontador = 0;
+            }
+            break;
+        case 6: //Idle espera
+            GPIO_IR = 0; // Silencio
+            if (++IRcontador == 352) {
+                nextEstado = 0;
+                IRcontador = 0;
+                puntero = (puntero+1) % NBUFFER; //Cambio de punteros
+                nocup--;
+            }
+            break;
+    }
+
+    IRestado = nextEstado;
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -569,30 +737,47 @@ BYTE LedToggle (sensorLed sl){
  * Output:      Returns the byte containing the status flags.
  * Overview:    Simple function to get (read) the status flags.
  ******************************************************************************/
-void __ISR(_TIMER_5_VECTOR, ipl2)buzzer(void) {
-    
+void __ISR(_TIMER_5_VECTOR, ipl5)IntTmp(void) {
+
     mT5ClearIntFlag();
 
     if (cntTemp) cntTemp++;
 
-    if (cntTemp == 100) cntTemp = 0;
+    if (cntTemp == 500) cntTemp = 0;
 
-    if (isBuzzing) {
+    if (nocup) {
+        protocoloNEC();
+    }
+
+    if (isBuzzing && (sound++ % 5 == 0)) {
+        sound = 1;
         cntBuzzer++;
         if (nota2) {
             if (cntBuzzer % 4 == 0)
-                sound = (sound+1)%2;
+                GPIO_BUZZ ^= 0x0001;
         } else {
             if (cntBuzzer % 3 == 0)
-                sound = (sound+1)%2;
+                GPIO_BUZZ ^= 0x0001;
         }
 
-        GPIO_BUZZ = sound;
-
         if (cntBuzzer == 10000) {
-            nota2 = (nota2+1)%2;
+            nota2 ^= 0x0001;
             cntBuzzer = 0;
         }
     }
+
+}
+
+/*******************************************************************************
+ * Function:    FuncionDePrueba()
+ * Input:       None
+ * Output:      Returns the byte containing the status flags.
+ * Overview:    Simple function to get (read) the status flags.
+ ******************************************************************************/
+void __ISR(_CHANGE_NOTICE_VECTOR, ipl6)IntCN(void) {
+
+    mCNClearIntFlag();
+
+    isPresence = 1;
 
 }
