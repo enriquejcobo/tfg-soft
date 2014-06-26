@@ -426,7 +426,8 @@ void BoardInit(void){
                     LedToggle(GREEN);
                     LedOff(BOTH);
                     buzzerOn();
-                    sendIR(0b00001111, 0b11110000);
+                    sendAA(AA_Summer, AA_On);
+        //            sendAA(AA_Summer, AA_Off);
 
                     if (getPIR() == TRUE) {
                         LedOn(GREEN);
@@ -452,9 +453,9 @@ void BoardInit(void){
              //       a = getAccY();
               //      a = getAccZ();
                  //   while (1) {
-                    if (getTemp() > 0x1000 ) {
-                        LedToggle(BOTH);
-                    }
+//                    if (getTemp() > 0x1000 ) {
+      //                  LedToggle(BOTH);
+        //            }
                     if (getTempAlert()) {
                         LedOff(BOTH);
                     }
