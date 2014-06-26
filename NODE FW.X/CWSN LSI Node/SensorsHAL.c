@@ -53,6 +53,8 @@
 
 /* END DEFINITIONS ************************************************************/
 
+void initAcc();
+
 /* VARIABLES ******************************************************************/
 //HAL
 //nodeStatus NodeStatus;
@@ -74,6 +76,7 @@ int IRindex;
 
 int mimascara;
 
+int cntPIR;
 
 BOOL isBuzzing;
 int cntBuzzer;
@@ -87,8 +90,6 @@ int isTempLowPower;
 int cntTemp;
 INT8 tempAlertMin;
 INT8 tempAlertMax;
-
-int isPresence;
 
 ////////////////////////////////////////////////////////////////////////////////
 /****************   HAL FUNCTIONS (FOR THE APPLICATION CODE)   ****************/
@@ -106,7 +107,7 @@ BYTE InitSensors(){
     #if defined BUZZ || defined TEMP || defined IR
       WORD T5_TICK = (CLOCK_FREQ/8/8/34000);
       OpenTimer5(T5_ON | T5_IDLE_CON | T5_GATE_OFF | T5_PS_1_8 | T5_SOURCE_INT, T5_TICK);
-      ConfigIntTimer5(T5_INT_ON | T5_INT_PRIOR_7);
+      ConfigIntTimer5(T5_INT_ON | T5_INT_PRIOR_5);
     #endif
 
     #if defined BUZZ
@@ -126,6 +127,8 @@ BYTE InitSensors(){
         mCNOpen(CN_ON | CN_IDLE_CON, CN15_ENABLE, CN_PULLUP_DISABLE_ALL);
         mPORTDRead(); //Vaciar
         ConfigIntCN(CHANGE_INT_ON | CHANGE_INT_PRI_6);
+        IFS1CLR = 0x00000001;
+        IPC6SET = 0x00180000;
         GPIO_PRES_TRIS = INPUT_PIN;
     #endif
 
@@ -392,12 +395,14 @@ void buzzerOff() {
  * Output:      None.
  * Overview:    Gets the acceleration by using MMA8453Q, and is saved.
  ******************************************************************************/
-void getAcc() {
+void initAcc() {
+
+    int registro;
 
     // Datos a mandar
     char i2cData[3];
     i2cData[0] = (AccAddress << 1) | 0; // Escritura
-    i2cData[1] = 0x00; //  Registro Temp. Ambiente
+    i2cData[1] = 0x2A; //  Registro Temp. Ambiente
     i2cData[2] = (AccAddress << 1) | 1; // Lectura
 
     // Comunicación
@@ -407,7 +412,55 @@ void getAcc() {
     IdleI2C2();
     MasterWriteI2C2(i2cData[1]); // Registro a escribir
     IdleI2C2();
-    AckI2C2();
+    RestartI2C2();
+    IdleI2C2();
+    MasterWriteI2C2(i2cData[2]); // TEMP address y leer
+    IdleI2C2();
+
+    // Leer datos
+    registro = MasterReadI2C2();
+    IdleI2C2();
+    StopI2C2();
+    IdleI2C2();
+
+    registro = registro | (0x02);
+    i2cData[2] = registro; // Lectura
+
+    // Comunicación
+    StartI2C2(); // Abrimos i2c
+    IdleI2C2(); // wait to complete
+    MasterWriteI2C2(i2cData[0]); // TEMP address y escribir
+    IdleI2C2();
+    MasterWriteI2C2(i2cData[1]); // Registro a escribir
+    IdleI2C2();
+    MasterWriteI2C2(i2cData[2]); // TEMP address y leer
+    IdleI2C2();
+    StopI2C2();
+    IdleI2C2();
+
+    return ;
+}
+
+/*******************************************************************************
+ * Function:    getAcc()
+ * Input:       None
+ * Output:      None.
+ * Overview:    Gets the acceleration by using MMA8453Q, and is saved.
+ ******************************************************************************/
+void getAcc() {
+
+    // Datos a mandar
+    char i2cData[3];
+    i2cData[0] = (AccAddress << 1) | 0; // Escritura
+    i2cData[1] = 0x01; //  Registro Temp. Ambiente
+    i2cData[2] = (AccAddress << 1) | 1; // Lectura
+
+    // Comunicación
+    StartI2C2(); // Abrimos i2c
+    IdleI2C2(); // wait to complete
+    MasterWriteI2C2(i2cData[0]); // TEMP address y escribir
+    IdleI2C2();
+    MasterWriteI2C2(i2cData[1]); // Registro a escribir
     IdleI2C2();
     RestartI2C2();
     IdleI2C2();
@@ -807,13 +860,17 @@ BYTE LedToggle (sensorLed sl){
  * Output:      Returns the byte containing the status flags.
  * Overview:    Simple function to get (read) the status flags.
  ******************************************************************************/
-void __ISR(_TIMER_5_VECTOR, ipl7)IntTmp(void) {
+void __ISR(_TIMER_5_VECTOR, ipl5)IntTmp(void) {
 
     mT5ClearIntFlag();
 
     if (cntTemp) cntTemp++;
 
     if (cntTemp == 500) cntTemp = 0;
+
+    if (cntPIR) cntPIR++;
+
+    if (cntPIR == 50000) cntPIR = 0;
 
     if (nocup) {
         protocoloAA();
@@ -848,6 +905,8 @@ void __ISR(_CHANGE_NOTICE_VECTOR, ipl6)IntCN(void) {
 
     mCNClearIntFlag();
 
-    isPresence = 1;
-
+    if (cntPIR == 0) {
+        LedToggle(BOTH);
+        cntPIR++;
+    }
 }

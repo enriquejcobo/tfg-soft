@@ -425,8 +425,8 @@ void BoardInit(void){
                     LedToggle(BOTH);
                     LedToggle(GREEN);
                     LedOff(BOTH);
-                    buzzerOn();
-                    sendAA(AA_Summer, AA_On);
+        //            buzzerOn();
+        //            sendAA(AA_Summer, AA_On);
         //            sendAA(AA_Summer, AA_Off);
 
                     if (getPIR() == TRUE) {
@@ -496,9 +496,8 @@ void BoardInit(void){
     // IOPORT CN - For waking up the node manually. --------------------------//
         mPORTDSetPinsDigitalIn(BIT_5); // CN14
         CNCON = 0x8000;         //Module enabled.
-        mCNOpen(CN_ON | CN_IDLE_CON, CN14_ENABLE, CN_PULLUP_DISABLE_ALL);
-        //CNEN = 0x00004000;      //Enable CN14
-        CNPUE = 0x00004000;     //Enable CN14 weak pull-up.
+        CNENSET = 0x00004000;      //Enable CN14
+        CNPUESET = 0x00004000;     //Enable CN14 weak pull-up.
         ReadBUTTONS();          //Clear PORT mismatch condition.
         IFS1CLR = 0x00000001;   //Clear the CN interrupt flag status bit
         IPC6SET = 0x00180000;   //Set CN priority 6, subpriority 0. */
