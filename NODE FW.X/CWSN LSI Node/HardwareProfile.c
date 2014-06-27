@@ -421,45 +421,7 @@ void BoardInit(void){
 
                 #if defined SENSORS
                     InitSensors();
-                    LedOn(GREEN);
-                    LedToggle(BOTH);
-                    LedToggle(GREEN);
-                    LedOff(BOTH);
-        //            buzzerOn();
-        //            sendAA(AA_Summer, AA_On);
-        //            sendAA(AA_Summer, AA_Off);
-
-                    if (getPIR() == TRUE) {
-                        LedOn(GREEN);
-                    }
-
-                    if (getLum() < 0x0FF) {
-                        LedOn(RED);
-                    }
-
-
-                    setTempResolution(2);
-                    getTempConf();
-                    setTempAlert(3, 50);
-                    setTempAlert(2, 0);
-                    getTempConf();
-                    setTempLowPower();
-
-             //       setTempResolution(0);
-
-            //        getAcc();
-            //        int a;
-            //        a = getAccX();
-             //       a = getAccY();
-              //      a = getAccZ();
-                 //   while (1) {
-//                    if (getTemp() > 0x1000 ) {
-      //                  LedToggle(BOTH);
-        //            }
-                    if (getTempAlert()) {
-                        LedOff(BOTH);
-                    }
-                   // }
+                    LedOn(BOTH);
                 #endif
                               
         #endif

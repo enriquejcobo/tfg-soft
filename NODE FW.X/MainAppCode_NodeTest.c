@@ -11,7 +11,8 @@
  ******************************************************************************/
 
 #include "CWSN LSI Node/Include/NodeHAL.h"
-#include "CWSN LSI Node/Include/WirelessProtocols/Console.h"    //Pruebas
+#include "CWSN LSI Node/Include/WirelessProtocols/Console.h"
+#include "SensorsHAL.h"    //Pruebas
 
 
 #if defined MIWI_2400_RI
@@ -112,6 +113,7 @@ INIT_STAGE:
             #endif
         }
     #endif
+    int tempActual, tempAnterior, diferencia;
 
     BYTE SMS1[9] = "Ola k ase";
     BYTE SMS2[7] = "Que tal";
@@ -148,7 +150,8 @@ INIT_STAGE:
     //goto TX_RX_MAXRATE;
     //goto SAVE_RESTORE;
     //goto POWER_DISSIPATION_TEST;
-    goto DEMO_PFC_AGUS;
+    //goto DEMO_PFC_AGUS;
+    goto DEMO_ENRIQUEJCOBO;
     //goto STAGE02;
 
 STAGE01:        //COMPROBACION DEL ESTADO INICIAL.
@@ -1318,6 +1321,33 @@ POWER_DISSIPATION_TEST:
                 }
 
         #endif
+
+    DEMO_ENRIQUEJCOBO:
+
+    // Acciones del sensor de temperatura
+    tempActual = getTemp();
+    Printf("\r\nTemperatura actual: ");
+    PrintDec(tempActual >> 8);
+    diferencia = tempActual - tempAnterior;
+    if (diferencia < -3 || diferencia > 3) {
+        Printf("\r\nAlarma de temperatura generada");
+    }
+    tempAnterior = tempActual;
+
+    // Sensor de luz
+    int luminosidad;
+    luminosidad = getLum();
+    if (luminosidad > 0x0F) {
+        Printf("\r\nLuminosidad alta");
+    } else {
+        Printf("\r\nLuminosidad baja");
+    }
+
+    // Buzzer
+    buzzerOff();
+    
+
+        SWDelay(3000);
 }
     return 0;
 }

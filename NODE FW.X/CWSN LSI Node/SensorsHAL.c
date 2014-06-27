@@ -876,21 +876,26 @@ void __ISR(_TIMER_5_VECTOR, ipl5)IntTmp(void) {
         protocoloAA();
     }
 
-    if (isBuzzing && (sound++ % 5 == 0)) {
-        sound = 1;
-        cntBuzzer++;
-        if (nota2) {
-            if (cntBuzzer % 4 == 0)
-                GPIO_BUZZ ^= 0x0001;
-        } else {
-            if (cntBuzzer % 3 == 0)
-                GPIO_BUZZ ^= 0x0001;
-        }
+    if (isBuzzing) {
+        if (sound++ % 5 == 0) {
+            sound = 1;
+            cntBuzzer++;
+            if (nota2) {
+                if (cntBuzzer % 4 == 0)
+                    GPIO_BUZZ ^= 0x0001;
+            } else {
+                if (cntBuzzer % 3 == 0)
+                    GPIO_BUZZ ^= 0x0001;
+            }
 
-        if (cntBuzzer == 5000) {
-            nota2 ^= 0x0001;
-            cntBuzzer = 0;
+            if (cntBuzzer == 5000) {
+                nota2 ^= 0x0001;
+                cntBuzzer = 0;
+            }
         }
+    } else {
+        cntBuzzer = 0;
+        GPIO_BUZZ = 0;
     }
 
 }
@@ -908,5 +913,6 @@ void __ISR(_CHANGE_NOTICE_VECTOR, ipl6)IntCN(void) {
     if (cntPIR == 0) {
         LedToggle(BOTH);
         cntPIR++;
+        isBuzzing = TRUE;
     }
 }
