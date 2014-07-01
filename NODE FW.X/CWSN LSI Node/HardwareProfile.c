@@ -421,7 +421,6 @@ void BoardInit(void){
 
                 #if defined SENSORS
                     InitSensors();
-                    LedOn(BOTH);
                 #endif
                               
         #endif
@@ -561,7 +560,7 @@ void InitCRModule(void){
 //ejecucion de las rutinas.
 void __ISR(_TIMER_4_VECTOR, ipl3)RutinaOptimizer(void)
 {
-    #if defined(CRMODULE)
+    #if !defined(CRMODULE)
         CRM_Optm_Int(); //Rutina de ejecucion de optimoizer.
     #endif
     /*Espacio reservado para que el usuario invoque, si lo desea, a funciones

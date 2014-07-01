@@ -78,10 +78,10 @@ int mimascara;
 
 int cntPIR;
 
-BOOL isBuzzing;
+int isBuzzing;
 int cntBuzzer;
 int nota2;
-int sound;
+int buzzerPrescaler;
 char tempConf;
 
 int accX, accY, accZ;
@@ -367,7 +367,7 @@ void protocoloAA () {
  ******************************************************************************/
 void buzzerOn() {
 
-    isBuzzing = TRUE;
+    isBuzzing++;
     return ;
 
 }
@@ -380,7 +380,8 @@ void buzzerOn() {
  ******************************************************************************/
 void buzzerOff() {
 
-    isBuzzing = FALSE;
+    if (isBuzzing)
+        isBuzzing--;
     return ;
 
 }
@@ -877,8 +878,8 @@ void __ISR(_TIMER_5_VECTOR, ipl5)IntTmp(void) {
     }
 
     if (isBuzzing) {
-        if (sound++ % 5 == 0) {
-            sound = 1;
+        if (buzzerPrescaler++ % 5 == 0) {
+            buzzerPrescaler = 1;
             cntBuzzer++;
             if (nota2) {
                 if (cntBuzzer % 4 == 0)
@@ -909,10 +910,13 @@ void __ISR(_TIMER_5_VECTOR, ipl5)IntTmp(void) {
 void __ISR(_CHANGE_NOTICE_VECTOR, ipl6)IntCN(void) {
 
     mCNClearIntFlag();
+    mPORTDRead(); //Vaciar
 
-    if (cntPIR == 0) {
-        LedToggle(BOTH);
+    // Sólo activamos la alarma si ha pasado el tiempo de seguridad y
+    // no estaba sonando
+    if (cntPIR == 0 && isBuzzing == 0) {
+
         cntPIR++;
-        isBuzzing = TRUE;
+        buzzerOn();
     }
 }

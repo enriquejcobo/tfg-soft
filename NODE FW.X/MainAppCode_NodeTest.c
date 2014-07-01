@@ -113,7 +113,6 @@ INIT_STAGE:
             #endif
         }
     #endif
-    int tempActual, tempAnterior, diferencia;
 
     BYTE SMS1[9] = "Ola k ase";
     BYTE SMS2[7] = "Que tal";
@@ -138,6 +137,10 @@ INIT_STAGE:
     BYTE ch434, ch868, ch2400;
 
     BYTE i, j, k, r, data;
+    
+    // Variables demo enriquejcobo
+    int tempActual, tempDecimal;
+
 
     while(1){
 
@@ -1327,28 +1330,42 @@ POWER_DISSIPATION_TEST:
     // Acciones del sensor de temperatura
     tempActual = getTemp();
     Printf("\r\nTemperatura actual: ");
-    PrintDec(tempActual >> 8);
-    diferencia = tempActual - tempAnterior;
-    if (diferencia < -3 || diferencia > 3) {
+    PrintDec(tempActual >> 8); // Parte entera
+    // Conversión de los decimales
+    tempDecimal = 0;
+    if (tempActual & 0x0080) {
+        tempDecimal += 50;
+    }
+    if (tempActual & 0x0040) {
+        tempDecimal += 25;
+    }
+    if (tempActual & 0x0020) {
+        tempDecimal += 12;
+    }
+    Printf(",");
+    PrintDec(tempDecimal);
+    if ((tempActual >> 8) > 25) {
         Printf("\r\nAlarma de temperatura generada");
     }
-    tempAnterior = tempActual;
 
     // Sensor de luz
     int luminosidad;
     luminosidad = getLum();
     if (luminosidad > 0x0F) {
-        Printf("\r\nLuminosidad alta");
+        Printf("\r\n\r\nLuminosidad alta");
+        LedOn(GREEN);
+        LedOff(RED);
     } else {
-        Printf("\r\nLuminosidad baja");
+        Printf("\r\n\r\nLuminosidad baja");
+        LedOn(RED);
+        LedOff(GREEN);
     }
 
-    // Buzzer
+    // Buzzer (siempre se apaga a los tres segundos)
     buzzerOff();
-    
 
-        SWDelay(3000);
-}
+SWDelay(1000);
+    }
     return 0;
 }
 
