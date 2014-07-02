@@ -1327,6 +1327,8 @@ POWER_DISSIPATION_TEST:
 
     DEMO_ENRIQUEJCOBO:
 
+    enableIntCN();
+
     // Acciones del sensor de temperatura
     tempActual = getTemp();
     Printf("\r\nTemperatura actual: ");

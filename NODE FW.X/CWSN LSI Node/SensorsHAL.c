@@ -2,7 +2,7 @@
  * File:   SensorsHAL.c
  * Author: Enrique Cobo Jiménez - Laboratorio de Sistemas Integrados (LSI) - UPM
  *
- * File Description: Sensors and Actuators Hardware Abstraction Level.
+ * File Description: Sensors and Actuators Hardware Abstraction Layer.
  * Implements an API for application and cognitive layers.
  * It's the top level of the LSI-CWSN Microchip MiWi Stack.
  *
@@ -10,14 +10,9 @@
  * Rev   Date         Description
  ******************************************************************************/
 /* INCLUDES *******************************************************************/
-#include "Include/SensorsHAL.h"            //LSI. HAL Definitions, data types, functions
-//#include "Include/Compiler.h"           //General MCHP.
+#include "Include/SensorsHAL.h"
 
 /* END INCLUDES ***************************************************************/
-
-/* CONFIGURATION **************************************************************/
-
-/* END CONFIGURATION **********************************************************/
 
 /* DEFINITIONS ****************************************************************/
 
@@ -56,43 +51,51 @@
 void initAcc();
 
 /* VARIABLES ******************************************************************/
-//HAL
-//nodeStatus NodeStatus;
-//UINT32 SleepEventCounter;
-//unsigned int coreTMRvals[11];
-//BYTE coreTMRptr;
 
-UINT8 AAModo [NBUFFER];
-UINT8 AAOnOff [NBUFFER];
-UINT8 AACRC [NBUFFER];
-UINT8 AATrama1 [7] = {0x11, 0xDA, 0x17, 0x18, T1a, T0, T1b};
-UINT8 AATrama2 [15] = {0x11, 0xDA, 0x17, 0x18, T0, T2a, T0, OnCool, T0, T0, TempCool, T2b, T0, T2c, CRCOnCool} ;
-int AApos;
-int nocup;
-int puntero;
-int IRcontador;
-int IRestado;
-int IRindex;
+#if defined TEMP
+    int isTempLowPower;
+    int cntTemp;
+    INT8 tempAlertMin;
+    INT8 tempAlertMax;
+#endif
 
-int mimascara;
+#if defined ACC
+    int accX, accY, accZ;
+#endif
 
-int cntPIR;
+#if defined PIR
+    int cntPIR;
+#endif
 
-int isBuzzing;
-int cntBuzzer;
-int nota2;
-int buzzerPrescaler;
-char tempConf;
+#if defined IR
+    UINT8 AAModo [NBUFFER];
+    UINT8 AAOnOff [NBUFFER];
+    UINT8 AACRC [NBUFFER];
+    UINT8 AATrama1 [7] = {0x11, 0xDA, 0x17, 0x18, T1a, T0, T1b};
+    UINT8 AATrama2 [15] = {0x11, 0xDA, 0x17, 0x18, T0, T2a, T0, OnCool, T0, T0, TempCool, T2b, T0, T2c, CRCOnCool} ;
+    int AApos;
+    int nocup;
+    int puntero;
+    int IRcontador;
+    int IRestado;
+    int IRindex;
+#endif
 
-int accX, accY, accZ;
+#if defined BUZZ
+    int isBuzzing;
+    int cntBuzzer;
+    int nota2;
+    int buzzerPrescaler;
+    char tempConf;
+#endif
 
-int isTempLowPower;
-int cntTemp;
-INT8 tempAlertMin;
-INT8 tempAlertMax;
+BOOL isEnabledIntCN;
+
+/* END VARIABLES **************************************************************/
+
 
 ////////////////////////////////////////////////////////////////////////////////
-/****************   HAL FUNCTIONS (FOR THE APPLICATION CODE)   ****************/
+/*****************   HAL FUNCTIONS (FOR THE SENSORS BOARD)   ******************/
 ////////////////////////////////////////////////////////////////////////////////
 
 /*******************************************************************************
@@ -101,14 +104,15 @@ INT8 tempAlertMax;
  * Output:   NO_ERROR if success. HAL error code otherwise.
  * Overview: Sensor initialization function.
  ******************************************************************************/
+#if defined SENSORS
 BYTE InitSensors(){
 
-      //TIMER5
-    #if defined BUZZ || defined TEMP || defined IR
-      WORD T5_TICK = (CLOCK_FREQ/8/8/34000);
-      OpenTimer5(T5_ON | T5_IDLE_CON | T5_GATE_OFF | T5_PS_1_8 | T5_SOURCE_INT, T5_TICK);
-      ConfigIntTimer5(T5_INT_ON | T5_INT_PRIOR_5);
-    #endif
+    //TIMER5
+    WORD T5_TICK = (CLOCK_FREQ/8/8/34000);
+    OpenTimer5(T5_ON | T5_IDLE_CON | T5_GATE_OFF | T5_PS_1_8 | T5_SOURCE_INT, T5_TICK);
+    ConfigIntTimer5(T5_INT_ON | T5_INT_PRIOR_5);
+
+    isEnabledIntCN = FALSE; // No se permiten interrupciones del CN
 
     #if defined BUZZ
       AD1PCFGSET = 0x0008; // Al ser multiplexado con ADCs hay que forzar
@@ -163,10 +167,12 @@ BYTE InitSensors(){
 
     return NO_ERROR;
 }
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 /********************************** IR ****************************************/
 ////////////////////////////////////////////////////////////////////////////////
+#if defined IR
 
 /*******************************************************************************
  * Function:    sendIR(int address, int command)
@@ -355,10 +361,12 @@ void protocoloAA () {
 
 }
 
+#endif
 ////////////////////////////////////////////////////////////////////////////////
 /********************************** BUZZER ************************************/
 ////////////////////////////////////////////////////////////////////////////////
 
+#if defined BUZZ
 /*******************************************************************************
  * Function:    buzzerOn()
  * Input:       None
@@ -386,10 +394,12 @@ void buzzerOff() {
 
 }
 
+#endif
 ////////////////////////////////////////////////////////////////////////////////
 /****************************** ACCELEROMETER *********************************/
 ////////////////////////////////////////////////////////////////////////////////
 
+#if defined ACC
 /*******************************************************************************
  * Function:    getAcc()
  * Input:       None
@@ -519,10 +529,13 @@ int getAccZ() {
     return accZ ;
 }
 
+
+#endif
 ////////////////////////////////////////////////////////////////////////////////
 /******************************* TEMPERATURE **********************************/
 ////////////////////////////////////////////////////////////////////////////////
 
+#if defined TEMP
 /*******************************************************************************
  * Function:    setTempConf() // PRIVATE
  * Input:       None
@@ -738,10 +751,12 @@ BOOL getTempAlert (){
 
 }
 
+#endif
 ////////////////////////////////////////////////////////////////////////////////
 /******************************* LUMINOSITY ***********************************/
 ////////////////////////////////////////////////////////////////////////////////
 
+#if defined LUM
 /*******************************************************************************
  * Function:    getLum()
  * Input:       None
@@ -778,10 +793,12 @@ BOOL getPIR (){
 
 }
 
+#endif
 ////////////////////////////////////////////////////////////////////////////////
 /************************************ LEDS ************************************/
 ////////////////////////////////////////////////////////////////////////////////
 
+#if defined SENSORS
 /*******************************************************************************
  * Function:    LedOn(sensorLed sl)
  * Input:       Led on the Sensors Shield
@@ -850,11 +867,13 @@ BYTE LedToggle (sensorLed sl){
        return NO_ERROR;
         }
 }
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////
 /************************* TIMER INTERRUPTIONS ********************************/
 ////////////////////////////////////////////////////////////////////////////////
 
+#if defined SENSORS
 /*******************************************************************************
  * Function:    FuncionDePrueba()
  * Input:       None
@@ -901,6 +920,33 @@ void __ISR(_TIMER_5_VECTOR, ipl5)IntTmp(void) {
 
 }
 
+#endif
+
+#if defined ACC | defined PIR
+/*******************************************************************************
+ * Function:    FuncionDePrueba()
+ * Input:       None
+ * Output:      Returns the byte containing the status flags.
+ * Overview:    Simple function to get (read) the status flags.
+ ******************************************************************************/
+void enableIntCN () {
+
+    isEnabledIntCN = TRUE;
+    return;
+}
+
+/*******************************************************************************
+ * Function:    FuncionDePrueba()
+ * Input:       None
+ * Output:      Returns the byte containing the status flags.
+ * Overview:    Simple function to get (read) the status flags.
+ ******************************************************************************/
+void disableIntCN () {
+
+    isEnabledIntCN = FALSE;
+    return;
+}
+
 /*******************************************************************************
  * Function:    FuncionDePrueba()
  * Input:       None
@@ -914,9 +960,11 @@ void __ISR(_CHANGE_NOTICE_VECTOR, ipl6)IntCN(void) {
 
     // Sólo activamos la alarma si ha pasado el tiempo de seguridad y
     // no estaba sonando
-    if (cntPIR == 0 && isBuzzing == 0) {
+    if (isEnabledIntCN == TRUE && cntPIR == 0 && isBuzzing == 0) {
 
         cntPIR++;
         buzzerOn();
     }
 }
+
+#endif

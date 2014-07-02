@@ -2,7 +2,7 @@
  * File:   SensorsHAL.h
  * Author: Enrique Cobo Jiménez - Laboratorio de Sistemas Integrados (LSI) - UPM
  *
- * File Description: Sensors and Actuators Hardware Abstraction Level
+ * File Description: Sensors and Actuators Hardware Abstraction Layer
  * Change History:
  * Rev   Date         Description
  ******************************************************************************/
@@ -15,65 +15,68 @@
 #include "NodeHAL.h"            //cNGD HAL
 
 /* DATA TYPES AND STRUCTURES **************************************************/
-typedef enum{
-    GREEN, RED, BOTH
-}sensorLed;
-
+#if defined SENSORS
+    typedef enum{
+        GREEN, RED, BOTH
+    } sensorLed;
 
 ////////////////////////////////////////////////////////////////////////////////
 /*********************** HAL FUNCTION PROTOTYPES ******************************/
 ////////////////////////////////////////////////////////////////////////////////
-//Initialization
-BYTE InitSensors();
-#define NBUFFER 4
-#define AA_On 1
-#define AA_Off 0
-#define AA_Summer 1
-#define AA_Winter 0
+//Initialization and general configuration
+    BYTE InitSensors();
 
-//Configuration
-BYTE LedOn(sensorLed sl);
-BYTE LedOff(sensorLed sl);
-BYTE LedToggle(sensorLed sl);
+    BYTE LedOn(sensorLed sl);
+    BYTE LedOff(sensorLed sl);
+    BYTE LedToggle(sensorLed sl);
 
-BOOL getPIR();
+    void enableIntCN();
+    void disableIntCN();
+#endif
 
-unsigned int getLum();
+// Temperature sensor
+#if defined TEMP
+    unsigned int getTemp();
+    unsigned int getTempConf();
+    BOOL getTempAlert();
+    void setTempResolution(int res);
+    void setTempLowPower();
+    void setTempAlert(int reg, INT8 alert);
+#endif
 
-unsigned int getTemp();
-unsigned int getTempConf();
-BOOL getTempAlert();
-void setTempResolution(int res);
-void setTempLowPower();
-void setTempAlert(int reg, INT8 alert);
+// Accelerometer
+#if defined ACC
+    void getAcc();
+    int getAccX();
+    int getAccY();
+    int getAccZ();
+#endif
 
-void sendAA(int modo, int estado);
+// Presence sensor
+#if defined PIR
+    BOOL getPIR();
+#endif
 
-void getAcc();
-int getAccX();
-int getAccY();
-int getAccZ();
+// Luminosity sensor
+#if defined LUM
+    unsigned int getLum();
+#endif
 
-void buzzerOn();
-void buzzerOff();
+// Infrared emitter
+#if defined IR
+    #define NBUFFER 4
+    #define AA_On 1
+    #define AA_Off 0
+    #define AA_Summer 1
+    #define AA_Winter 0
 
-//Power Management
+    void sendAA(int modo, int estado);
+#endif
 
-// LEDS
+#if defined BUZZ
+    void buzzerOn();
+    void buzzerOff();
+#endif
 
-
-//Send & Receive - Radio Communication300
-
-
-//Security
-
-
-//RadioFrequency
-
-
-//Node's variables saving:
-
-
-//Stacks Maintenance
 
 #endif
