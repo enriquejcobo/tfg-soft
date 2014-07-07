@@ -27,6 +27,8 @@
 #endif
 
 #if defined IR
+    #define NBUFFER 4
+
     #define TCOMUN (0x11, 0xAD, 0x78, 0x81)
     #define T1a (0x04)
     #define T0 (0x00)
@@ -46,9 +48,23 @@
     #define CRCOffHeat (0x14)
 #endif
 
+#if defined ACC
+    #define DATA_READY 0
+    #define MOTION_FREEFALL 2
+    #define TAP 3
+    #define ORIENTATION 4
+    #define TRANSIENT 5
+    #define ASLEEP 7
+
+    #define ACC_INT1 0
+    #define ACC_INT2 1
+#endif
+
 /* END DEFINITIONS ************************************************************/
 
-void initAcc();
+UINT8 getAccRegister (UINT8 reg);
+void setAccRegister (UINT8 reg, UINT8 dato);
+void protocoloAA();
 
 /* VARIABLES ******************************************************************/
 
@@ -61,6 +77,7 @@ void initAcc();
 
 #if defined ACC
     int accX, accY, accZ;
+    UINT8 sourceINT1, sourceINT2;
 #endif
 
 #if defined PIR
@@ -68,9 +85,9 @@ void initAcc();
 #endif
 
 #if defined IR
-    UINT8 AAModo [NBUFFER];
-    UINT8 AAOnOff [NBUFFER];
-    UINT8 AACRC [NBUFFER];
+    UINT8 IRParam1 [NBUFFER];
+    UINT8 IRParam2 [NBUFFER];
+    void (*IRProtocol[NBUFFER]) (void);
     UINT8 AATrama1 [7] = {0x11, 0xDA, 0x17, 0x18, T1a, T0, T1b};
     UINT8 AATrama2 [15] = {0x11, 0xDA, 0x17, 0x18, T0, T2a, T0, OnCool, T0, T0, TempCool, T2b, T0, T2c, CRCOnCool} ;
     int AApos;
@@ -89,8 +106,6 @@ void initAcc();
     char tempConf;
 #endif
 
-BOOL isEnabledIntCN;
-
 /* END VARIABLES **************************************************************/
 
 
@@ -107,12 +122,14 @@ BOOL isEnabledIntCN;
 #if defined SENSORS
 BYTE InitSensors(){
 
+    // En un principio no se habilitan las interrupciones
+    // Hay que llamar a enableIntSensors() para habilitarlas
+    // (al comienzo de la aplicación con el uso de los sensores)
+
     //TIMER5
     WORD T5_TICK = (CLOCK_FREQ/8/8/34000);
     OpenTimer5(T5_ON | T5_IDLE_CON | T5_GATE_OFF | T5_PS_1_8 | T5_SOURCE_INT, T5_TICK);
-    ConfigIntTimer5(T5_INT_ON | T5_INT_PRIOR_5);
-
-    isEnabledIntCN = FALSE; // No se permiten interrupciones del CN
+    ConfigIntTimer5(T5_INT_OFF | T5_INT_PRIOR_7);
 
     #if defined BUZZ
       AD1PCFGSET = 0x0008; // Al ser multiplexado con ADCs hay que forzar
@@ -126,17 +143,16 @@ BYTE InitSensors(){
         GPIO_IR = 0;
     #endif
 
-    // PIR
     #if defined PIR
         mCNOpen(CN_ON | CN_IDLE_CON, CN15_ENABLE, CN_PULLUP_DISABLE_ALL);
         mPORTDRead(); //Vaciar
-        ConfigIntCN(CHANGE_INT_ON | CHANGE_INT_PRI_6);
+        ConfigIntCN(CHANGE_INT_OFF | CHANGE_INT_PRI_6);
         IFS1CLR = 0x00000001;
         IPC6SET = 0x00180000;
         GPIO_PRES_TRIS = INPUT_PIN;
     #endif
 
-    // TEMP y ACC (I2C)
+    // I2C
     #if defined ACC || defined TEMP
         #define TempAddress (0x48)
         #define AccAddress (0x1C)
@@ -147,8 +163,18 @@ BYTE InitSensors(){
         tempConf = 0x00;
         #define tempReg (0x00)
         #define tempConfReg (0x01)
-        AD1PCFGSET = 0x8000; // Al ser multiplexado con ADCs hay que forzar
+        AD1PCFGSET = 0x8000; // Puerto multiplexado con ADCs, hay que forzar entrada digital
         TEMP_ALERT_TRIS = INPUT_PIN;
+    #endif
+
+    #if defined ACC
+        int registro;
+        registro = getAccRegister(0x2A);
+        registro = registro | (0x02);
+        setAccRegister(0x2A, registro);
+
+        sourceINT1 = 0;
+        sourceINT2 = 0;
     #endif
 
     // LUM
@@ -180,36 +206,19 @@ BYTE InitSensors(){
  * Output:      None.
  * Overview:    Switchs the buzzer on.
  ******************************************************************************/
-void sendAA (int modo, int estado) {
-
-    int nuevoEstado, nuevoModo, nuevoCRC;
+void sendIR (INT8 device, INT8 param1, INT8 param2) {
 
     if (nocup == NBUFFER) return; // Si no hay hueco lo borramos
 
-    if (modo == AA_Summer) {
-        nuevoModo = TempCool;
-        if (estado == AA_On) {
-            nuevoEstado = OnCool;
-            nuevoCRC = CRCOnCool;
-        } else {
-            nuevoEstado = OffCool;
-            nuevoCRC = CRCOffCool;
-        }
-    } else {
-        nuevoModo = TempHeat;
-        if (estado == AA_On) {
-            nuevoEstado = OnHeat;
-            nuevoCRC = CRCOnHeat;
-        } else {
-            nuevoEstado = OffHeat;
-            nuevoCRC = CRCOffHeat;
-        }
+    switch (device) {
+        case AA:
+            IRProtocol[(puntero+nocup) % NBUFFER] = protocoloAA;
+            break;
+        // Implementación de nuevos protocolos
     }
 
-    AAOnOff[(puntero+nocup) % NBUFFER] = nuevoEstado;
-    AAModo[(puntero+nocup) % NBUFFER] = nuevoModo;
-    AACRC[(puntero+nocup) % NBUFFER] = nuevoCRC;
-
+    IRParam1[(puntero+nocup) % NBUFFER] = param1;
+    IRParam2[(puntero+nocup) % NBUFFER] = param2;
     nocup++;
 
 }
@@ -264,6 +273,8 @@ int mandarUno() {
  ******************************************************************************/
 void protocoloAA () {
 
+    // Se implementa por medio de una máquina de estados
+
     int nextEstado;
     int aMandar;
     int final;
@@ -275,9 +286,26 @@ void protocoloAA () {
             if (++IRcontador == 342) {
                 nextEstado = 1;
                 IRcontador = 0;
-                AATrama2[7] = AAOnOff[puntero];
-                AATrama2[10] = AAModo[puntero];
-                AATrama2[14] = AACRC[puntero];
+                // Decodificación de parámetros a mandar
+                if (IRParam1[puntero] == AA_Summer) {
+                    AATrama2[7] = TempCool;
+                    if (IRParam2[puntero] == AA_On) {
+                        AATrama2[10] = OnCool;
+                        AATrama2[14] = CRCOnCool;
+                    } else {
+                        AATrama2[10] = OffCool;
+                        AATrama2[14] = CRCOffCool;
+                    }
+                } else {
+                    AATrama2[7] = TempHeat;
+                    if (IRParam2[puntero] == AA_On) {
+                        AATrama2[10] = OnHeat;
+                        AATrama2[14] = CRCOnHeat;
+                    } else {
+                        AATrama2[10] = OffHeat;
+                        AATrama2[14] = CRCOffHeat;
+                    }
+                }
             }
             break;
         case 1: // Espera
@@ -406,48 +434,77 @@ void buzzerOff() {
  * Output:      None.
  * Overview:    Gets the acceleration by using MMA8453Q, and is saved.
  ******************************************************************************/
-void initAcc() {
+UINT8 getAccRegister (UINT8 reg) {
 
-    int registro;
+    UINT8 contenido;
 
     // Datos a mandar
     char i2cData[3];
     i2cData[0] = (AccAddress << 1) | 0; // Escritura
-    i2cData[1] = 0x2A; //  Registro Temp. Ambiente
+    i2cData[1] = reg; //  Registro Temp. Ambiente
     i2cData[2] = (AccAddress << 1) | 1; // Lectura
 
     // Comunicación
     StartI2C2(); // Abrimos i2c
     IdleI2C2(); // wait to complete
-    MasterWriteI2C2(i2cData[0]); // TEMP address y escribir
+    MasterWriteI2C2(i2cData[0]); // ACC address y escribir
     IdleI2C2();
     MasterWriteI2C2(i2cData[1]); // Registro a escribir
     IdleI2C2();
     RestartI2C2();
     IdleI2C2();
-    MasterWriteI2C2(i2cData[2]); // TEMP address y leer
+    MasterWriteI2C2(i2cData[2]); // ACC address y leer
     IdleI2C2();
 
     // Leer datos
-    registro = MasterReadI2C2();
+    contenido = MasterReadI2C2();
     IdleI2C2();
     StopI2C2();
     IdleI2C2();
 
-    registro = registro | (0x02);
-    i2cData[2] = registro; // Lectura
+    return contenido;
+}
+
+/*******************************************************************************
+ * Function:    getAcc()
+ * Input:       None
+ * Output:      None.
+ * Overview:    Gets the acceleration by using MMA8453Q, and is saved.
+ ******************************************************************************/
+void setAccRegister (UINT8 reg, UINT8 dato) {
+
+    // Datos a mandar
+    char i2cData[3];
+    i2cData[0] = (AccAddress << 1) | 0; // Escritura
+    i2cData[1] = reg; //  Registro a escribir
+    i2cData[2] = dato; // Escritura en el registro
 
     // Comunicación
     StartI2C2(); // Abrimos i2c
     IdleI2C2(); // wait to complete
-    MasterWriteI2C2(i2cData[0]); // TEMP address y escribir
+    MasterWriteI2C2(i2cData[0]); // ACC address y escribir
     IdleI2C2();
     MasterWriteI2C2(i2cData[1]); // Registro a escribir
     IdleI2C2();
-    MasterWriteI2C2(i2cData[2]); // TEMP address y leer
+    MasterWriteI2C2(i2cData[2]); // Escribir en registro
     IdleI2C2();
     StopI2C2();
     IdleI2C2();
+}
+
+/*******************************************************************************
+ * Function:    getAcc()
+ * Input:       None
+ * Output:      None.
+ * Overview:    Gets the acceleration by using MMA8453Q, and is saved.
+ ******************************************************************************/
+void setAccLowPower() {
+
+    int registro;
+
+    registro = getAccRegister(0x2A);
+    registro = registro | (0xC0);
+    setAccRegister(0x2A, registro);
 
     return ;
 }
@@ -458,37 +515,23 @@ void initAcc() {
  * Output:      None.
  * Overview:    Gets the acceleration by using MMA8453Q, and is saved.
  ******************************************************************************/
-void getAcc() {
+void setAccInt(int interrupcion, int source) {
 
-    // Datos a mandar
-    char i2cData[3];
-    i2cData[0] = (AccAddress << 1) | 0; // Escritura
-    i2cData[1] = 0x01; //  Registro Temp. Ambiente
-    i2cData[2] = (AccAddress << 1) | 1; // Lectura
+    UINT8 dato, registro;
 
-    // Comunicación
-    StartI2C2(); // Abrimos i2c
-    IdleI2C2(); // wait to complete
-    MasterWriteI2C2(i2cData[0]); // TEMP address y escribir
-    IdleI2C2();
-    MasterWriteI2C2(i2cData[1]); // Registro a escribir
-    IdleI2C2();
-    RestartI2C2();
-    IdleI2C2();
-    MasterWriteI2C2(i2cData[2]); // TEMP address y leer
-    IdleI2C2();
+    dato = (1 << source); //BSET de la fuente correspondiente
+    registro = getAccRegister(0x2E);
 
-    // Leer datos
-    accX = MasterReadI2C2();
-    AckI2C2();
-    IdleI2C2();
-    accY = MasterReadI2C2();
-    AckI2C2();
-    IdleI2C2();
-    accZ = MasterReadI2C2();
-    IdleI2C2();
-    StopI2C2();
-    IdleI2C2();
+    if (interrupcion = ACC_INT1) {
+        sourceINT1 = dato;
+        dato = dato | sourceINT2; //No sobreescribir el de la otra interrupción
+    } else {
+        sourceINT2 = dato;
+        dato = dato | sourceINT1; //No sobreescribir el de la otra interrupción
+    }
+
+    setAccRegister(0x2D, dato);
+    setAccRegister(0x2E, sourceINT1);
 
     return ;
 }
@@ -880,7 +923,7 @@ BYTE LedToggle (sensorLed sl){
  * Output:      Returns the byte containing the status flags.
  * Overview:    Simple function to get (read) the status flags.
  ******************************************************************************/
-void __ISR(_TIMER_5_VECTOR, ipl5)IntTmp(void) {
+void __ISR(_TIMER_5_VECTOR, ipl7)IntTmp(void) {
 
     mT5ClearIntFlag();
 
@@ -893,7 +936,7 @@ void __ISR(_TIMER_5_VECTOR, ipl5)IntTmp(void) {
     if (cntPIR == 50000) cntPIR = 0;
 
     if (nocup) {
-        protocoloAA();
+        IRProtocol[puntero](); //Puntero a función que implementa el protocolo
     }
 
     if (isBuzzing) {
@@ -929,9 +972,10 @@ void __ISR(_TIMER_5_VECTOR, ipl5)IntTmp(void) {
  * Output:      Returns the byte containing the status flags.
  * Overview:    Simple function to get (read) the status flags.
  ******************************************************************************/
-void enableIntCN () {
+void enableIntSensors () {
 
-    isEnabledIntCN = TRUE;
+    ConfigIntTimer5(T5_INT_ON | T5_INT_PRIOR_7);
+    ConfigIntCN(CHANGE_INT_ON | CHANGE_INT_PRI_6);
     return;
 }
 
@@ -941,9 +985,10 @@ void enableIntCN () {
  * Output:      Returns the byte containing the status flags.
  * Overview:    Simple function to get (read) the status flags.
  ******************************************************************************/
-void disableIntCN () {
+void disableIntSensors () {
 
-    isEnabledIntCN = FALSE;
+    ConfigIntTimer5(T5_INT_OFF | T5_INT_PRIOR_7);
+    ConfigIntCN(CHANGE_INT_OFF | CHANGE_INT_PRI_6);
     return;
 }
 
@@ -960,7 +1005,7 @@ void __ISR(_CHANGE_NOTICE_VECTOR, ipl6)IntCN(void) {
 
     // Sólo activamos la alarma si ha pasado el tiempo de seguridad y
     // no estaba sonando
-    if (isEnabledIntCN == TRUE && cntPIR == 0 && isBuzzing == 0) {
+    if (cntPIR == 0 && isBuzzing == 0) {
 
         cntPIR++;
         buzzerOn();

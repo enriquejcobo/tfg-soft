@@ -139,8 +139,10 @@ INIT_STAGE:
     BYTE i, j, k, r, data;
     
     // Variables demo enriquejcobo
+    int firstTime = 1;
     int tempActual, tempDecimal;
-
+    int AAEncendido = 0;
+    int luminosidad;
 
     while(1){
 
@@ -1327,11 +1329,21 @@ POWER_DISSIPATION_TEST:
 
     DEMO_ENRIQUEJCOBO:
 
-    enableIntCN();
+    if (firstTime) {
+       TRISDbits.TRISD5 = INPUT_PIN;
+       Printf("\r\nDemostración. TFG enriquejcobo.");
+       Printf("\r\nPulse el botón S2 para comenzar.");
+       while (BUTTON_1) {
+           // Esperamos a pulsar para empezar la demo
+       }
+       enableIntSensors();
+       firstTime = 0;
+       Printf("\r\n");
+    }
 
     // Acciones del sensor de temperatura
     tempActual = getTemp();
-    Printf("\r\nTemperatura actual: ");
+    Printf("\r\n\r\nTemperatura actual: ");
     PrintDec(tempActual >> 8); // Parte entera
     // Conversión de los decimales
     tempDecimal = 0;
@@ -1347,26 +1359,45 @@ POWER_DISSIPATION_TEST:
     Printf(",");
     PrintDec(tempDecimal);
     if ((tempActual >> 8) > 25) {
-        Printf("\r\nAlarma de temperatura generada");
+        Printf(": Temperatura alta.");
+        if (AAEncendido) {
+            Printf("\r\nMantenemos el aire acondicionado encendido");
+        } else {
+            Printf("\r\nEncendemos el aire acondicionado. Modo verano.");
+            sendIR(AA, AA_Summer, AA_On);
+            AAEncendido = 1;
+        }
+    } else if ((tempActual >> 8) < 20) {
+        Printf(": Temperatura baja.");
+        if (! (AAEncendido)) {
+            Printf("\r\nMantenemos el aire acondicionado apagado");
+        } else {
+            Printf("\r\nApagamos el aire acondicionado.");
+            sendIR(AA, AA_Summer, AA_Off);
+            AAEncendido = 1;
+        }
+    } else {
+        Printf(": Temperatura agradable.");
     }
 
     // Sensor de luz
-    int luminosidad;
+    LedOff(RED);
+    LedOff(GREEN);
     luminosidad = getLum();
-    if (luminosidad > 0x0F) {
-        Printf("\r\n\r\nLuminosidad alta");
+    if (luminosidad > 0x0F) { //Umbral superior
+        Printf("\r\n\r\nLuminosidad alta.");
         LedOn(GREEN);
-        LedOff(RED);
-    } else {
-        Printf("\r\n\r\nLuminosidad baja");
+    } else if (luminosidad < 0x1F) { // Umbral inferior
+        Printf("\r\n\r\nLuminosidad baja.");
         LedOn(RED);
-        LedOff(GREEN);
+    } else {
+        Printf("\r\n\r\nLuminosidad media.");
     }
 
     // Buzzer (siempre se apaga a los tres segundos)
     buzzerOff();
 
-SWDelay(1000);
+    SWDelay(1000);
     }
     return 0;
 }

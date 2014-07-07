@@ -30,8 +30,8 @@
     BYTE LedOff(sensorLed sl);
     BYTE LedToggle(sensorLed sl);
 
-    void enableIntCN();
-    void disableIntCN();
+    void enableIntSensors();
+    void disableIntSensors();
 #endif
 
 // Temperature sensor
@@ -64,13 +64,13 @@
 
 // Infrared emitter
 #if defined IR
-    #define NBUFFER 4
+    #define AA 1
     #define AA_On 1
     #define AA_Off 0
     #define AA_Summer 1
     #define AA_Winter 0
 
-    void sendAA(int modo, int estado);
+    void sendIR(INT8 device, INT8 param1, INT8 param2);
 #endif
 
 #if defined BUZZ
