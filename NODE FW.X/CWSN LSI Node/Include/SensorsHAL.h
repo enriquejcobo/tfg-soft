@@ -46,6 +46,17 @@
 
 // Accelerometer
 #if defined ACC
+    #define DATA_READY 0
+    #define MOTION_FREEFALL 2
+    #define TAP 3
+    #define ORIENTATION 4
+    #define TRANSIENT 5
+    #define ASLEEP 7
+    #define NO_INT 8
+
+    #define ACC_INT1 0
+    #define ACC_INT2 1
+
     void getAcc();
     int getAccX();
     int getAccY();

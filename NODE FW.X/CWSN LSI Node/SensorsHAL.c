@@ -48,18 +48,6 @@
     #define CRCOffHeat (0x14)
 #endif
 
-#if defined ACC
-    #define DATA_READY 0
-    #define MOTION_FREEFALL 2
-    #define TAP 3
-    #define ORIENTATION 4
-    #define TRANSIENT 5
-    #define ASLEEP 7
-
-    #define ACC_INT1 0
-    #define ACC_INT2 1
-#endif
-
 /* END DEFINITIONS ************************************************************/
 
 UINT8 getAccRegister (UINT8 reg);
@@ -170,7 +158,7 @@ BYTE InitSensors(){
     #if defined ACC
         int registro;
         registro = getAccRegister(0x2A);
-        registro = registro | (0x02);
+       registro = registro | (0x03);
         setAccRegister(0x2A, registro);
 
         sourceINT1 = 0;
@@ -508,6 +496,48 @@ void setAccLowPower() {
 
     return ;
 }
+
+void getAcc() {
+
+    // Datos a mandar
+    char i2cData[3];
+    i2cData[0] = (AccAddress << 1) | 0; // Escritura
+    i2cData[1] = 0x00; //  Registro Temp. Ambiente
+    i2cData[2] = (AccAddress << 1) | 1; // Lectura
+
+    // Comunicacin
+    StartI2C2(); // Abrimos i2c
+    IdleI2C2(); // wait to complete
+    MasterWriteI2C2(i2cData[0]); // TEMP address y escribir
+    IdleI2C2();
+    MasterWriteI2C2(i2cData[1]); // Registro a escribir
+    IdleI2C2();
+    RestartI2C2();
+    IdleI2C2();
+    MasterWriteI2C2(i2cData[2]); // TEMP address y leer
+    IdleI2C2();
+
+
+    UINT8 registro;
+
+    // Leer datos
+    registro = MasterReadI2C2();
+    AckI2C2();
+    IdleI2C2();
+    accX = MasterReadI2C2();
+    AckI2C2();
+    IdleI2C2();
+    accY = MasterReadI2C2();
+    AckI2C2();
+    IdleI2C2();
+    accZ = MasterReadI2C2();
+    IdleI2C2();
+    StopI2C2();
+    IdleI2C2();
+
+
+     return ;
+ }
 
 /*******************************************************************************
  * Function:    getAcc()
