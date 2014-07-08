@@ -151,18 +151,20 @@ BYTE InitSensors(){
         tempConf = 0x00;
         #define tempReg (0x00)
         #define tempConfReg (0x01)
-        AD1PCFGSET = 0x8000; // Puerto multiplexado con ADCs, hay que forzar entrada digital
-        TEMP_ALERT_TRIS = INPUT_PIN;
     #endif
 
     #if defined ACC
         int registro;
         registro = getAccRegister(0x2A);
-       registro = registro | (0x03);
+        registro = registro | (0x03);
         setAccRegister(0x2A, registro);
 
         sourceINT1 = 0;
         sourceINT2 = 0;
+
+        AD1PCFGSET = 0x8008; // Puerto multiplexado con ADCs, hay que forzar entrada digital
+        GPIO_INT1_TRIS = INPUT_PIN;
+        GPIO_INT2_TRIS = INPUT_PIN;
     #endif
 
     // LUM

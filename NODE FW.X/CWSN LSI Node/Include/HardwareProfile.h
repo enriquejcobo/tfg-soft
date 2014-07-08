@@ -386,29 +386,36 @@
 
 
     #if defined SENSORS
-        #define GREEN_LED_TRIS  TRISEbits.TRISE7 // Header 22
-        #define GREEN_LED       PORTEbits.RE7
-        #define RED_LED_TRIS    TRISEbits.TRISE5 // Header 23
-        #define RED_LED         PORTEbits.RE5
+        #define GREEN_LED_TRIS  TRISEbits.TRISE5 // Header 23
+        #define GREEN_LED       PORTEbits.RE5
+        #define RED_LED_TRIS    TRISEbits.TRISE7 // Header 22
+        #define RED_LED         PORTEbits.RE7
 
         #if defined PIR
-            #define GPIO_PRES_TRIS          TRISDbits.TRISD6 // Header 35
+            #define GPIO_PRES_TRIS          TRISDbits.TRISD6 // Header 33
             #define GPIO_PRES               PORTDbits.RD6
         #endif
 
         #if defined IR
-            #define GPIO_IR_TRIS          TRISCbits.TRISC1 // Header 36
-            #define GPIO_IR               PORTCbits.RC1
+            #define GPIO_IR_TRIS          TRISEbits.TRISE6 // Header 35
+            #define GPIO_IR               PORTEbits.RE6
         #endif
 
         #if defined BUZZ
-            #define GPIO_BUZZ_TRIS          TRISBbits.TRISB3 // Header 2
-            #define GPIO_BUZZ               PORTBbits.RB3
+            #define GPIO_BUZZ_TRIS          TRISBbits.TRISB11 // Header 3
+            #define GPIO_BUZZ               PORTBbits.RB11
         #endif
 
         #if defined TEMP
-            #define TEMP_ALERT_TRIS         TRISBbits.TRISB15 // Header 16
-            #define TEMP_ALERT              PORTBbits.RB15
+            #define TEMP_ALERT_TRIS         TRISDbits.TRISD8 // Header 9
+            #define TEMP_ALERT              PORTDbits.RD8
+        #endif
+
+        #if defined ACC
+            #define GPIO_INT1_TRIS         TRISBbits.TRISB15 // Header 16
+            #define GPIO_INT1              PORTBbits.RB15
+            #define GPIO_INT2_TRIS         TRISBbits.TRISB3 // Header 2
+            #define GPIO_INT2              PORTBbits.RB3
         #endif
     #endif
     #endif
