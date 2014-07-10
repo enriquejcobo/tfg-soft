@@ -421,6 +421,14 @@ void BoardInit(void){
 
                 #if defined SENSORS
                     InitSensors();
+                    enableIntSensors();
+                    sendIR(AA, AA_Summer, AA_Off);
+                    //buzzerOn();
+                    LedOn(RED);
+                    while (1) {
+                    LedToggle(BOTH);
+                    }
+                    
                 #endif
                               
         #endif

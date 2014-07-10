@@ -120,7 +120,7 @@ BYTE InitSensors(){
     ConfigIntTimer5(T5_INT_OFF | T5_INT_PRIOR_7);
 
     #if defined BUZZ
-      AD1PCFGSET = 0x0008; // Al ser multiplexado con ADCs hay que forzar
+      AD1PCFGSET = 0x0800; // Al ser multiplexado con ADCs hay que forzar
       GPIO_BUZZ_TRIS = OUTPUT_PIN;
       GPIO_BUZZ = 0;
       isBuzzing = FALSE;
@@ -278,18 +278,18 @@ void protocoloAA () {
                 IRcontador = 0;
                 // Decodificación de parámetros a mandar
                 if (IRParam1[puntero] == AA_Summer) {
-                    AATrama2[7] = TempCool;
+                    AATrama2[10] = TempCool;
                     if (IRParam2[puntero] == AA_On) {
-                        AATrama2[10] = OnCool;
+                        AATrama2[7] = OnCool;
                         AATrama2[14] = CRCOnCool;
                     } else {
-                        AATrama2[10] = OffCool;
+                        AATrama2[7] = OffCool;
                         AATrama2[14] = CRCOffCool;
                     }
                 } else {
-                    AATrama2[7] = TempHeat;
+                    AATrama2[10] = TempHeat;
                     if (IRParam2[puntero] == AA_On) {
-                        AATrama2[10] = OnHeat;
+                        AATrama2[7] = OnHeat;
                         AATrama2[14] = CRCOnHeat;
                     } else {
                         AATrama2[10] = OffHeat;
