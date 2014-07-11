@@ -531,7 +531,7 @@ BYTE GetPayloadToRead(radioInterface ri){
                 Printf("\r\nError: MiWi at 434 MHz is not available");
                 return UNAVAILABLE_INTERFACE_ERROR;
             #else
-                return MIWI0434_payloadToRead;
+                    return MIWI0434_payloadToRead;
             #endif
         case MIWI_0868:
             #ifndef MIWI_0868_RI

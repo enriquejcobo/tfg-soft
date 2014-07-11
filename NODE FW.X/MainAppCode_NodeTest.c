@@ -144,6 +144,9 @@ INIT_STAGE:
     int AAEncendido = 0;
     int luminosidad;
 
+    BYTE cmdBuzzOn[11] = "buzzerOn();";
+    BYTE cmdBuzzOff[12] = "buzzerOff();";
+
     while(1){
 
         UINT16 delay;
@@ -1327,13 +1330,77 @@ POWER_DISSIPATION_TEST:
 
         #endif
 
-    DEMO_ENRIQUEJCOBO:
+DEMO_ENRIQUEJCOBO:
+
+    #if defined NODE_1
 
     if (firstTime) {
+       // Parámetros de transmisión
+
+            TestAddress[0] = 0x00;
+            TestAddress[1] = 0x11;
+            TestAddress[2] = 0x22;
+            TestAddress[3] = 0x33;
+            TestAddress[4] = 0x44;
+            TestAddress[5] = 0x55;
+            TestAddress[6] = 0x66;
+            TestAddress[7] = 0x22;   //Distintivo de la direcci?n del nodo 2.
+
+            ch434 = GetOpChannel(MIWI_0434);
+            ch868 = GetOpChannel(MIWI_0868);
+            ch2400 = GetOpChannel(MIWI_2400);
+
+            j = 0;
+            i = 0;
+            r = 0; //error counter
+
+        i = DoChannelScanning(MIWI_0868, memStoreTest);
+
+
+            Printf("\r\n Canal menos ruidoso a 868 MHz es: ");
+            PrintChar(i);
+
+            ri = MIWI_0868;
+            LED1 = 0;
+            LED2 = 1;
+            SetChannel(ri, ch868);
+            Printf("\r\n Tramitamos con RX el cambio en 868 MHZ al canal ");
+            PrintChar(i);
+
+            j= 1;
+            while(j){
+            j = PutTXData(ri, 'c'); //comando para cambiar de canal
+                if (j){
+                    Printf("\r\nFallo al escribir en el buffer. Codigo de error: ");
+                    PrintChar(j);
+                }
+
+            j = PutTXData(ri, i);
+                if (j){
+                    Printf("\r\nFallo al escribir en el buffer. Codigo de error: ");
+                    PrintChar(j);
+                }
+
+
+            j = SendPckt(ri, LONG_MIWI_ADDRMODE, TestAddress);
+                Printf("\r\nRX contesta: ");
+                if (j==0){
+                    Printf(" => OK");
+                }
+                else{
+                    Printf(" => FALLO");
+                    }
+            }
+
+            SetChannel(ri, i);  //cambiamos al nuevo canal
+            DoChannelScanning(MIWI_0868, memStoreTest);
+
+
        TRISDbits.TRISD5 = INPUT_PIN;
-       Printf("\r\nDemostración. TFG enriquejcobo.");
-       Printf("\r\nPulse el botón S2 para comenzar.");
+       Printf("\r\nDemo TFG enriquejcobo.");
+       Printf("\r\nPulse S2 para comenzar.");
        while (BUTTON_1) {
+           mPORTDRead();
            // Esperamos a pulsar para empezar la demo
        }
        enableIntSensors();
@@ -1397,8 +1464,86 @@ POWER_DISSIPATION_TEST:
     // Buzzer (siempre se apaga a los tres segundos)
     buzzerOff();
 
-    SWDelay(1000);
+    // Enviar dato
+    while(i < sizeof(cmdBuzzOn)){
+        j = PutTXData(ri, cmdBuzzOn[i]);
+        if (j){
+            Printf("\r\nFallo al escribir en el buffer. Codigo de error: ");
+            PrintChar(j);
+        }else{
+            i++;
+        }
     }
+
+    i = SendPckt(ri, LONG_MIWI_ADDRMODE, TestAddress);
+        Printf("\r\nPaquete enviado en 868 MHz:: ");
+        if (i==0){
+            Printf(" => OK");
+            r = 0;
+        }
+        else{
+            Printf(" => FALLO");
+            r++;
+            }
+
+    SWDelay(1000);
+
+#elif defined NODE_2
+    while (TRUE){
+    i = WhichRIHasData();
+    switch(i){
+        case MIWI_0434_RI_MASK:
+            Printf("\r\nMensaje recibido en RI 434: ");
+            while(GetPayloadToRead(MIWI_0434) > 0){
+            GetRXData(MIWI_0434, &data);
+            ConsolePut(data);
+            if(data=='c'){
+                GetRXData(MIWI_0434, &data);
+                PrintDec(data);
+                Printf("\r\nRI en 434 MHz cambia a canal ");
+                PrintDec(data);
+                SetChannel(MIWI_0434, data);
+            }
+            }
+            break;
+
+        case MIWI_0868_RI_MASK:
+            Printf("\r\nMensaje recibido en RI 868: ");
+            while(GetPayloadToRead(MIWI_0868) > 0){
+            GetRXData(MIWI_0868, &data);
+            ConsolePut(data);
+            if(data=='c'){
+                GetRXData(MIWI_0868, &data);
+                PrintDec(data);
+                Printf("\r\nRI en 868 MHz cambia a canal ");
+                PrintDec(data);
+                SetChannel(MIWI_0868, data);
+            }
+            }
+            break;
+        case MIWI_2400_RI_MASK:
+            Printf("\r\nMensaje recibido en RI 2400: ");
+            while(GetPayloadToRead(MIWI_2400) > 0){
+            GetRXData(MIWI_2400, &data);
+            ConsolePut(data);
+            if(data=='c'){
+                GetRXData(MIWI_2400, &data);
+                PrintDec(data);
+                Printf("\r\nRI en 2.4 GHz cambia a canal ");
+                PrintDec(data);
+                SetChannel(MIWI_2400, data);
+            }
+            }
+            break;
+
+        default:
+            break;
+    }
+    }
+
+#endif
+    }
+
     return 0;
 }
 
