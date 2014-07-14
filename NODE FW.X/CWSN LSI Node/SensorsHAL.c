@@ -393,7 +393,7 @@ void protocoloAA () {
  ******************************************************************************/
 void buzzerOn() {
 
-    isBuzzing++;
+    isBuzzing = 1;
     return ;
 
 }
@@ -406,8 +406,7 @@ void buzzerOn() {
  ******************************************************************************/
 void buzzerOff() {
 
-    if (isBuzzing)
-        isBuzzing--;
+    isBuzzing = 0;
     return ;
 
 }
@@ -703,7 +702,7 @@ unsigned int getTemp (){
         cntTemp++;
         // Esperar a que se produzca la medida
         // Tienen que estar habilitadas las interrupciones
-        // while (cntTemp){}
+        while (cntTemp){}
     }
 
     getTempRegister(tempReg);
@@ -959,17 +958,36 @@ void __ISR(_TIMER_5_VECTOR, ipl7)IntTmp(void) {
 
     mT5ClearIntFlag();
 
+    #if defined TEMP
+
     if (cntTemp) cntTemp++;
 
-    if (cntTemp == 500) cntTemp = 0;
+    if (cntTemp == 2040) cntTemp = 0; // 30 ms
+
+    #endif
+    #if defined PIR
 
     if (cntPIR) cntPIR++;
 
-    if (cntPIR == 50000) cntPIR = 0;
+    if (cntPIR == 204000) { //3 seg
+        if (getPIR()) {
+            cntPIR = 1; // Reiniciamos la cuenta
+        } else {
+            cntPIR = 0;
+            LedOn(RED);
+            LedOff(GREEN);
+        }
+    }
+
+    #endif
+    #if defined IR
 
     if (nocup) {
         IRProtocol[puntero](); //Puntero a función que implementa el protocolo
     }
+
+    #endif
+    #if defined BUZZ
 
     if (isBuzzing) {
         if (buzzerPrescaler++ % 5 == 0) {
@@ -993,11 +1011,13 @@ void __ISR(_TIMER_5_VECTOR, ipl7)IntTmp(void) {
         GPIO_BUZZ = 0;
     }
 
+    #endif
+
 }
 
 #endif
 
-#if defined ACC | defined PIR
+#if defined ACC | defined PIR | defined BUZZ
 /*******************************************************************************
  * Function:    FuncionDePrueba()
  * Input:       None
@@ -1037,13 +1057,17 @@ void __ISR(_CHANGE_NOTICE_VECTOR, ipl6)IntCN(void) {
     mCNClearIntFlag();
     mPORTDRead(); //Vaciar
 
+    #if defined PIR
+
     // Sólo activamos la alarma si ha pasado el tiempo de seguridad y
     // no estaba sonando
     if (cntPIR == 0 && isBuzzing == 0) {
 
         cntPIR++;
-        buzzerOn();
+        LedOff(RED);
+        LedOn(GREEN);
     }
+    #endif
 }
 
 #endif

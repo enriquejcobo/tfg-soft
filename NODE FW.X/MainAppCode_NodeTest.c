@@ -148,6 +148,8 @@ INIT_STAGE:
     BYTE cmdBuzzOff[12] = "buzzerOff();";
     int isBuzzer;
 
+    int medidaAccZ;
+
     while(1){
 
         UINT16 delay;
@@ -1338,78 +1340,34 @@ DEMO_ENRIQUEJCOBO:
     if (firstTime) {
        // Parámetros de transmisión
 
-            TestAddress[0] = 0x00;
-            TestAddress[1] = 0x11;
-            TestAddress[2] = 0x22;
-            TestAddress[3] = 0x33;
-            TestAddress[4] = 0x44;
-            TestAddress[5] = 0x55;
-            TestAddress[6] = 0x66;
-            TestAddress[7] = 0x22;   //Distintivo de la direcci?n del nodo 2.
+        TestAddress[0] = 0x00;
+        TestAddress[1] = 0x11;
+        TestAddress[2] = 0x22;
+        TestAddress[3] = 0x33;
+        TestAddress[4] = 0x44;
+        TestAddress[5] = 0x55;
+        TestAddress[6] = 0x66;
+        TestAddress[7] = 0x22;   //Distintivo de la direccion del nodo 2.
 
-            ch434 = GetOpChannel(MIWI_0434);
-            ch868 = GetOpChannel(MIWI_0868);
-            ch2400 = GetOpChannel(MIWI_2400);
+        ch868 = GetOpChannel(MIWI_0868);
+        ri = MIWI_0868;
+        SetChannel(ri, ch868);
 
-            j = 0;
-            i = 0;
-            r = 0; //error counter
-
-            
-
-        i = DoChannelScanning(MIWI_0868, memStoreTest);
-
-
-            Printf("\r\n Canal menos ruidoso a 868 MHz es: ");
-            PrintChar(i);
-
-            ri = MIWI_0868;
-            LED1 = 0;
-            LED2 = 1;
-            SetChannel(ri, ch868);
-            Printf("\r\n Tramitamos con RX el cambio en 868 MHZ al canal ");
-            PrintChar(i);
-
-            j= 1;
-            while(j){
-            j = PutTXData(ri, 'c'); //comando para cambiar de canal
-                if (j){
-                    Printf("\r\nFallo al escribir en el buffer. Codigo de error: ");
-                    PrintChar(j);
-                }
-
-            j = PutTXData(ri, i);
-                if (j){
-                    Printf("\r\nFallo al escribir en el buffer. Codigo de error: ");
-                    PrintChar(j);
-                }
-
-
-            j = SendPckt(ri, LONG_MIWI_ADDRMODE, TestAddress);
-                Printf("\r\nRX contesta: ");
-                if (j==0){
-                    Printf(" => OK");
-                }
-                else{
-                    Printf(" => FALLO");
-                    }
-            }
-
-            SetChannel(ri, i);  //cambiamos al nuevo canal
-           // DoChannelScanning(MIWI_0868, memStoreTest);
-
+        j = 0;
+        i = 0;
+        r = 0; //error counter
 
        mCNOpen(CN_ON | CN_IDLE_CON, CN14_ENABLE, CN_PULLUP_DISABLE_ALL);
-        Printf("\r\n\r\n\r\n--------------------------------\r\n\r\n");
+        Printf("\r\n\r\n\r\n\r\n\r\n--------------------------------");
        PORTSetPinsDigitalIn(IOPORT_D, BIT_5);
        mPORTDRead();
+       LedOn(RED);
        Printf("\r\nDemo TFG enriquejcobo.");
        Printf("\r\nPulse S2 para comenzar.");
        while (BUTTON_1) {
            mPORTDRead();
            // Esperamos a pulsar para empezar la demo
        }
-       DisableCN14;
        enableIntSensors();
        firstTime = 0;
        Printf("\r\n");
@@ -1433,18 +1391,18 @@ DEMO_ENRIQUEJCOBO:
     Printf(",");
     PrintDec(tempDecimal);
     if ((tempActual >> 8) > 27) {
-        Printf(": Temperatura alta.");
+        Printf(": Temperatura alta. ");
         if (AAEncendido) {
-            Printf("\r\nMantenemos el aire acondicionado encendido");
+            Printf("\r\nMantenemos el aire acondicionado encendido.");
         } else {
             Printf("\r\nEncendemos el aire acondicionado. Modo verano.");
             sendIR(AA, AA_Summer, AA_On);
             AAEncendido = 1;
         }
     } else if ((tempActual >> 8) < 23) {
-        Printf(": Temperatura baja.");
+        Printf(": Temperatura baja. ");
         if (! (AAEncendido)) {
-            Printf("\r\nMantenemos el aire acondicionado apagado");
+            Printf("\r\nMantenemos el aire acondicionado apagado.");
         } else {
             Printf("\r\nApagamos el aire acondicionado.");
             sendIR(AA, AA_Summer, AA_Off);
@@ -1452,44 +1410,59 @@ DEMO_ENRIQUEJCOBO:
         }
     } else {
         Printf(": Temperatura agradable.");
+        if (AAEncendido) {
+            Printf("\r\nMantenemos el aire acondicionado encendido.");
+        } else {
+            Printf("\r\nMantenemos el aire acondicionado apagado.");
+        }
     }
 
     // Acelerómetro
     getAcc();
-
-
-    // Sensor de luz
-    LedOff(RED);
-    LedOff(GREEN);
-    luminosidad = getLum();
-    if (luminosidad > 0x1F) { //Umbral superior
-        Printf("\r\n\r\nLuminosidad alta.");
-        LedOn(GREEN);
-    } else if (luminosidad < 0x0F) { // Umbral inferior
-        Printf("\r\n\r\nLuminosidad baja.");
-        LedOn(RED);
+    medidaAccZ = getAccZ();
+    Printf("\r\nMedida del acelerometro en Z: ");
+    PrintChar(abs(medidaAccZ));
+    if (abs(medidaAccZ) < (0x31)) { //Si está inclinado pita
+        while(i < sizeof(cmdBuzzOn)){
+            j = PutTXData(ri, cmdBuzzOn[i]);
+            if (j){
+                Printf("\r\nFallo al escribir en el buffer. Codigo de error: ");
+                PrintChar(j);
+            }else{
+                i++;
+            }
+        }
     } else {
-        Printf("\r\n\r\nLuminosidad media.");
-    }
-
-    // Buzzer (siempre se apaga a los tres segundos)
-    buzzerOff();
-
-    Printf("\r\n");
-
-    // Enviar dato
-    while(i < sizeof(cmdBuzzOn)){
-        j = PutTXData(ri, cmdBuzzOn[i]);
-        if (j){
-            Printf("\r\nFallo al escribir en el buffer. Codigo de error: ");
-            PrintChar(j);
-        }else{
-            i++;
+        while(i < sizeof(cmdBuzzOff)){
+            j = PutTXData(ri, cmdBuzzOff[i]);
+            if (j){
+                Printf("\r\nFallo al escribir en el buffer. Codigo de error: ");
+                PrintChar(j);
+            }else{
+                i++;
+            }
         }
     }
 
+
+    // Sensor de luz
+    luminosidad = getLum();
+    if (luminosidad > 0x1F) { //Umbral superior
+        Printf("\r\nLuminosidad alta.");
+        buzzerOff();
+    } else if (luminosidad < 0x0F) { // Umbral inferior
+        Printf("\r\nLuminosidad baja.");
+        buzzerOn();
+    } else {
+        Printf("\r\nLuminosidad media.");
+    }
+
+    // El control del PIR está en las rutinas de interrupción
+
+    // Enviar dato
+
     i = SendPckt(ri, LONG_MIWI_ADDRMODE, TestAddress);
-        Printf("\r\nPaquete enviado en 868 MHz:: ");
+        Printf("\r\nPaquete enviado en 868 MHz: ");
         if (i==0){
             Printf(" => OK");
             r = 0;
