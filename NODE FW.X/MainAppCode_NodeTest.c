@@ -146,6 +146,7 @@ INIT_STAGE:
 
     BYTE cmdBuzzOn[11] = "buzzerOn();";
     BYTE cmdBuzzOff[12] = "buzzerOff();";
+    int isBuzzer;
 
     while(1){
 
@@ -1354,6 +1355,8 @@ DEMO_ENRIQUEJCOBO:
             i = 0;
             r = 0; //error counter
 
+            
+
         i = DoChannelScanning(MIWI_0868, memStoreTest);
 
 
@@ -1393,16 +1396,20 @@ DEMO_ENRIQUEJCOBO:
             }
 
             SetChannel(ri, i);  //cambiamos al nuevo canal
-            DoChannelScanning(MIWI_0868, memStoreTest);
+           // DoChannelScanning(MIWI_0868, memStoreTest);
 
 
-       TRISDbits.TRISD5 = INPUT_PIN;
+       mCNOpen(CN_ON | CN_IDLE_CON, CN14_ENABLE, CN_PULLUP_DISABLE_ALL);
+        Printf("\r\n\r\n\r\n--------------------------------\r\n\r\n");
+       PORTSetPinsDigitalIn(IOPORT_D, BIT_5);
+       mPORTDRead();
        Printf("\r\nDemo TFG enriquejcobo.");
        Printf("\r\nPulse S2 para comenzar.");
        while (BUTTON_1) {
            mPORTDRead();
            // Esperamos a pulsar para empezar la demo
        }
+       DisableCN14;
        enableIntSensors();
        firstTime = 0;
        Printf("\r\n");
@@ -1425,7 +1432,7 @@ DEMO_ENRIQUEJCOBO:
     }
     Printf(",");
     PrintDec(tempDecimal);
-    if ((tempActual >> 8) > 25) {
+    if ((tempActual >> 8) > 27) {
         Printf(": Temperatura alta.");
         if (AAEncendido) {
             Printf("\r\nMantenemos el aire acondicionado encendido");
@@ -1434,7 +1441,7 @@ DEMO_ENRIQUEJCOBO:
             sendIR(AA, AA_Summer, AA_On);
             AAEncendido = 1;
         }
-    } else if ((tempActual >> 8) < 20) {
+    } else if ((tempActual >> 8) < 23) {
         Printf(": Temperatura baja.");
         if (! (AAEncendido)) {
             Printf("\r\nMantenemos el aire acondicionado apagado");
@@ -1447,14 +1454,18 @@ DEMO_ENRIQUEJCOBO:
         Printf(": Temperatura agradable.");
     }
 
+    // Acelerómetro
+    getAcc();
+
+
     // Sensor de luz
     LedOff(RED);
     LedOff(GREEN);
     luminosidad = getLum();
-    if (luminosidad > 0x0F) { //Umbral superior
+    if (luminosidad > 0x1F) { //Umbral superior
         Printf("\r\n\r\nLuminosidad alta.");
         LedOn(GREEN);
-    } else if (luminosidad < 0x1F) { // Umbral inferior
+    } else if (luminosidad < 0x0F) { // Umbral inferior
         Printf("\r\n\r\nLuminosidad baja.");
         LedOn(RED);
     } else {
@@ -1463,6 +1474,8 @@ DEMO_ENRIQUEJCOBO:
 
     // Buzzer (siempre se apaga a los tres segundos)
     buzzerOff();
+
+    Printf("\r\n");
 
     // Enviar dato
     while(i < sizeof(cmdBuzzOn)){
@@ -1489,6 +1502,7 @@ DEMO_ENRIQUEJCOBO:
     SWDelay(1000);
 
 #elif defined NODE_2
+    enableIntSensors();
     while (TRUE){
     i = WhichRIHasData();
     switch(i){
@@ -1518,6 +1532,22 @@ DEMO_ENRIQUEJCOBO:
                 Printf("\r\nRI en 868 MHz cambia a canal ");
                 PrintDec(data);
                 SetChannel(MIWI_0868, data);
+            }
+            if (isBuzzer && data =='n') {
+                isBuzzer = 2;
+                buzzerOn();
+            }
+            if (isBuzzer && data =='f') {
+                isBuzzer = 3;
+                buzzerOff();
+            }
+            if(data=='b') {
+                isBuzzer = 1;
+            }
+            if (isBuzzer && data ==';') {
+                if (isBuzzer == 2) Printf("\r\nEncendemos el buzzer.");
+                if (isBuzzer == 3) Printf("\r\nApagamos el buzzer.");
+                isBuzzer = 0;
             }
             }
             break;

@@ -1007,6 +1007,8 @@ void __ISR(_TIMER_5_VECTOR, ipl7)IntTmp(void) {
 void enableIntSensors () {
 
     ConfigIntTimer5(T5_INT_ON | T5_INT_PRIOR_7);
+    mCNOpen(CN_ON | CN_IDLE_CON, CN15_ENABLE, CN_PULLUP_DISABLE_ALL);
+    mPORTDRead();
     ConfigIntCN(CHANGE_INT_ON | CHANGE_INT_PRI_6);
     return;
 }

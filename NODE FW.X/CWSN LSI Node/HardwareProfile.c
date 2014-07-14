@@ -421,7 +421,6 @@ void BoardInit(void){
 
                 #if defined SENSORS
                     InitSensors();
-                    LedOn(BOTH);
                 #endif
                               
         #endif
