@@ -147,7 +147,10 @@ INIT_STAGE:
     BYTE cmdBuzzOn[11] = "buzzerOn();";
     BYTE cmdBuzzOff[12] = "buzzerOff();";
     int isBuzzer;
+    int hayDato;
 
+    int medidaAccX;
+    int medidaAccY;
     int medidaAccZ;
 
     while(1){
@@ -1368,6 +1371,7 @@ DEMO_ENRIQUEJCOBO:
            mPORTDRead();
            // Esperamos a pulsar para empezar la demo
        }
+       isBuzzer = 0;
        enableIntSensors();
        firstTime = 0;
        Printf("\r\n");
@@ -1375,7 +1379,7 @@ DEMO_ENRIQUEJCOBO:
 
     // Acciones del sensor de temperatura
     tempActual = getTemp();
-    Printf("\r\n\r\nTemperatura actual: ");
+    Printf("\r\n\r\n\r\nMedida de temperatura: ");
     PrintDec(tempActual >> 8); // Parte entera
     // Conversión de los decimales
     tempDecimal = 0;
@@ -1390,7 +1394,8 @@ DEMO_ENRIQUEJCOBO:
     }
     Printf(",");
     PrintDec(tempDecimal);
-    if ((tempActual >> 8) > 27) {
+    // Líneas para encender el aire acondicionado
+    /*if ((tempActual >> 8) > 27) {
         Printf(": Temperatura alta. ");
         if (AAEncendido) {
             Printf("\r\nMantenemos el aire acondicionado encendido.");
@@ -1416,30 +1421,45 @@ DEMO_ENRIQUEJCOBO:
             Printf("\r\nMantenemos el aire acondicionado apagado.");
         }
     }
+    */
 
     // Acelerómetro
     getAcc();
+    medidaAccX = getAccX();
+    medidaAccY = getAccY();
     medidaAccZ = getAccZ();
-    Printf("\r\nMedida del acelerometro en Z: ");
+    Printf("\r\nMedida del acelerometro: x = ");
+    PrintChar(abs(medidaAccX));
+    Printf(", y = ");
+    PrintChar(abs(medidaAccY));
+    Printf(", z = ");
     PrintChar(abs(medidaAccZ));
     if (abs(medidaAccZ) < (0x31)) { //Si está inclinado pita
-        while(i < sizeof(cmdBuzzOn)){
-            j = PutTXData(ri, cmdBuzzOn[i]);
-            if (j){
-                Printf("\r\nFallo al escribir en el buffer. Codigo de error: ");
-                PrintChar(j);
-            }else{
-                i++;
+        if (! isBuzzer) {
+            isBuzzer = 1;
+            hayDato = 1;// Enviamos si hay que cambiar el estado
+            while(i < sizeof(cmdBuzzOn)){
+                j = PutTXData(ri, cmdBuzzOn[i]);
+                if (j){
+                    Printf("\r\nFallo al escribir en el buffer. Codigo de error: ");
+                    PrintChar(j);
+                }else{
+                    i++;
+                }
             }
         }
     } else {
-        while(i < sizeof(cmdBuzzOff)){
-            j = PutTXData(ri, cmdBuzzOff[i]);
-            if (j){
-                Printf("\r\nFallo al escribir en el buffer. Codigo de error: ");
-                PrintChar(j);
-            }else{
-                i++;
+        if (isBuzzer) {
+            isBuzzer = 0;
+            hayDato = 1;
+            while(i < sizeof(cmdBuzzOff)){
+                j = PutTXData(ri, cmdBuzzOff[i]);
+                if (j){
+                    Printf("\r\nFallo al escribir en el buffer. Codigo de error: ");
+                    PrintChar(j);
+                }else{
+                    i++;
+                }
             }
         }
     }
@@ -1447,30 +1467,31 @@ DEMO_ENRIQUEJCOBO:
 
     // Sensor de luz
     luminosidad = getLum();
-    if (luminosidad > 0x1F) { //Umbral superior
-        Printf("\r\nLuminosidad alta.");
-        buzzerOff();
-    } else if (luminosidad < 0x0F) { // Umbral inferior
-        Printf("\r\nLuminosidad baja.");
+    Printf("\r\nMedida de luminosidad: ");
+    PrintChar(luminosidad >> 8);
+    PrintChar(luminosidad);
+    if (luminosidad < 0x3F) {
         buzzerOn();
     } else {
-        Printf("\r\nLuminosidad media.");
+        buzzerOff();
     }
 
     // El control del PIR está en las rutinas de interrupción
 
     // Enviar dato
-
-    i = SendPckt(ri, LONG_MIWI_ADDRMODE, TestAddress);
-        Printf("\r\nPaquete enviado en 868 MHz: ");
-        if (i==0){
-            Printf(" => OK");
-            r = 0;
-        }
-        else{
-            Printf(" => FALLO");
-            r++;
+    if (hayDato) {
+        hayDato = 0;
+        i = SendPckt(ri, LONG_MIWI_ADDRMODE, TestAddress);
+            Printf("\r\n\r\nPaquete enviado en 868 MHz: ");
+            if (i==0){
+                Printf(" => OK");
+                r = 0;
             }
+            else{
+                Printf(" => FALLO");
+                r++;
+                }
+    }
 
     SWDelay(1000);
 
@@ -1495,7 +1516,7 @@ DEMO_ENRIQUEJCOBO:
             break;
 
         case MIWI_0868_RI_MASK:
-            Printf("\r\nMensaje recibido en RI 868: ");
+            Printf("\r\n\r\nMensaje recibido en RI 868: ");
             while(GetPayloadToRead(MIWI_0868) > 0){
             GetRXData(MIWI_0868, &data);
             ConsolePut(data);
