@@ -3,8 +3,6 @@
  * Author: Enrique Cobo Jiménez - Laboratorio de Sistemas Integrados (LSI) - UPM
  *
  * File Description: Sensors and Actuators Hardware Abstraction Layer.
- * Implements an API for application and cognitive layers.
- * It's the top level of the LSI-CWSN Microchip MiWi Stack.
  *
  * Change History:
  * Rev   Date         Description
@@ -191,10 +189,10 @@ BYTE InitSensors(){
 #if defined IR
 
 /*******************************************************************************
- * Function:    sendIR(int address, int command)
- * Input:       None
+ * Function:    sendIR(INT8 device, INT8 param1, INT8 param2)
+ * Input:       Device address and command to send.
  * Output:      None.
- * Overview:    Switchs the buzzer on.
+ * Overview:    Sends via IR the command to gobern the device.
  ******************************************************************************/
 void sendIR (INT8 device, INT8 param1, INT8 param2) {
 
@@ -214,10 +212,10 @@ void sendIR (INT8 device, INT8 param1, INT8 param2) {
 }
 
 /*******************************************************************************
- * Function:    sendIR(int address, int command)
- * Input:       None
- * Output:      None.
- * Overview:    Switchs the buzzer on.
+ * Function:    mandarCero()
+ * Input:       None.
+ * Output:      1 when ends, 0 otherwise.
+ * Overview:    Sends a '0' in the IR interface.
  ******************************************************************************/
 int mandarCero() {
 
@@ -235,10 +233,10 @@ int mandarCero() {
 }
 
 /*******************************************************************************
- * Function:    sendIR(int address, int command)
- * Input:       None
- * Output:      None.
- * Overview:    Switchs the buzzer on.
+ * Function:    mandarUno()
+ * Input:       None.
+ * Output:      1 when ends, 0 otherwise.
+ * Overview:    Sends a '1' in the IR interface.
  ******************************************************************************/
 int mandarUno() {
 
@@ -256,10 +254,10 @@ int mandarUno() {
 }
 
 /*******************************************************************************
- * Function:    sendIR(int address, int command)
- * Input:       None
+ * Function:    protocoloAA()
+ * Input:       None.
  * Output:      None.
- * Overview:    Switchs the buzzer on.
+ * Overview:    Implements the air conditionated machine IR protocol.
  ******************************************************************************/
 void protocoloAA () {
 
@@ -387,7 +385,7 @@ void protocoloAA () {
 #if defined BUZZ
 /*******************************************************************************
  * Function:    buzzerOn()
- * Input:       None
+ * Input:       None.
  * Output:      None.
  * Overview:    Switchs the buzzer on.
  ******************************************************************************/
@@ -400,7 +398,7 @@ void buzzerOn() {
 
 /*******************************************************************************
  * Function:    buzzerOff()
- * Input:       None
+ * Input:       None.
  * Output:      None.
  * Overview:    Switchs the buzzer off.
  ******************************************************************************/
@@ -418,10 +416,10 @@ void buzzerOff() {
 
 #if defined ACC
 /*******************************************************************************
- * Function:    getAcc()
- * Input:       None
- * Output:      None.
- * Overview:    Gets the acceleration by using MMA8453Q, and is saved.
+ * Function:    getAccRegister(UINT8 reg)
+ * Input:       None.
+ * Output:      Value of 'reg'.
+ * Overview:    Gets the value of the 'reg' register.
  ******************************************************************************/
 UINT8 getAccRegister (UINT8 reg) {
 
@@ -430,7 +428,7 @@ UINT8 getAccRegister (UINT8 reg) {
     // Datos a mandar
     char i2cData[3];
     i2cData[0] = (AccAddress << 1) | 0; // Escritura
-    i2cData[1] = reg; //  Registro Temp. Ambiente
+    i2cData[1] = reg; //  Registro Acc.
     i2cData[2] = (AccAddress << 1) | 1; // Lectura
 
     // Comunicación
@@ -455,10 +453,10 @@ UINT8 getAccRegister (UINT8 reg) {
 }
 
 /*******************************************************************************
- * Function:    getAcc()
- * Input:       None
+ * Function:    setAccRegister(UINT8 reg, UINT8 dato)
+ * Input:       'reg' register and 'dato' to be sent.
  * Output:      None.
- * Overview:    Gets the acceleration by using MMA8453Q, and is saved.
+ * Overview:    Puts the 'dato' on the 'reg' register.
  ******************************************************************************/
 void setAccRegister (UINT8 reg, UINT8 dato) {
 
@@ -482,10 +480,10 @@ void setAccRegister (UINT8 reg, UINT8 dato) {
 }
 
 /*******************************************************************************
- * Function:    getAcc()
- * Input:       None
+ * Function:    setAccLowPower()
+ * Input:       None.
  * Output:      None.
- * Overview:    Gets the acceleration by using MMA8453Q, and is saved.
+ * Overview:    Puts the accelerometer into a low power status.
  ******************************************************************************/
 void setAccLowPower() {
 
@@ -498,24 +496,30 @@ void setAccLowPower() {
     return ;
 }
 
+/*******************************************************************************
+ * Function:    getAcc()
+ * Input:       None
+ * Output:      None.
+ * Overview:    Gets the acceleration by using MMA8453Q, and is saved.
+ ******************************************************************************/
 void getAcc() {
 
     // Datos a mandar
     char i2cData[3];
     i2cData[0] = (AccAddress << 1) | 0; // Escritura
-    i2cData[1] = 0x00; //  Registro Temp. Ambiente
+    i2cData[1] = 0x00; //  Registro Acc.
     i2cData[2] = (AccAddress << 1) | 1; // Lectura
 
     // Comunicacin
     StartI2C2(); // Abrimos i2c
     IdleI2C2(); // wait to complete
-    MasterWriteI2C2(i2cData[0]); // TEMP address y escribir
+    MasterWriteI2C2(i2cData[0]); // ACC address y escribir
     IdleI2C2();
     MasterWriteI2C2(i2cData[1]); // Registro a escribir
     IdleI2C2();
     RestartI2C2();
     IdleI2C2();
-    MasterWriteI2C2(i2cData[2]); // TEMP address y leer
+    MasterWriteI2C2(i2cData[2]); // ACC address y leer
     IdleI2C2();
 
 
@@ -541,8 +545,8 @@ void getAcc() {
  }
 
 /*******************************************************************************
- * Function:    getAcc()
- * Input:       None
+ * Function:    setAccInt(int interrupcion, int source)
+ * Input:       Number of interruption (1 or 2) and the source.
  * Output:      None.
  * Overview:    Gets the acceleration by using MMA8453Q, and is saved.
  ******************************************************************************/
@@ -570,7 +574,7 @@ void setAccInt(int interrupcion, int source) {
 
 /*******************************************************************************
  * Function:    getAccX()
- * Input:       None
+ * Input:       None.
  * Output:      Acceleration in X axis.
  * Overview:    Once the acceleration has been saved, read it.
  ******************************************************************************/
@@ -582,7 +586,7 @@ int getAccX() {
 
 /*******************************************************************************
  * Function:    getAccY()
- * Input:       None
+ * Input:       None.
  * Output:      Acceleration in Y axis.
  * Overview:    Once the acceleration has been saved, read it.
  ******************************************************************************/
@@ -594,7 +598,7 @@ int getAccY() {
 
 /*******************************************************************************
  * Function:    getAccZ()
- * Input:       None
+ * Input:       None.
  * Output:      Acceleration in Z axis.
  * Overview:    Once the acceleration has been saved, read it.
  ******************************************************************************/
@@ -603,6 +607,37 @@ int getAccZ() {
     return accZ ;
 }
 
+/*******************************************************************************
+ * Function:    getAccInt1()
+ * Input:       None.
+ * Output:      Boolean.
+ * Overview:    Get 'TRUE' if alert. 'FALSE' if no alert.
+ ******************************************************************************/
+BOOL getAccInt1 (){
+
+    // Activo a nivel alto
+    if (ACC_INT1 == 0) {
+        return FALSE;
+    }
+    return TRUE;
+
+}
+
+/*******************************************************************************
+ * Function:    getTempAlert()
+ * Input:       None
+ * Output:      Boolean.
+ * Overview:    Get 'TRUE' if alert. 'FALSE' if no alert.
+ ******************************************************************************/
+BOOL getAccInt2 (){
+
+    // Activo a nivel alto
+    if (ACC_INT2 == 0) {
+        return FALSE;
+    }
+    return TRUE;
+
+}
 
 #endif
 ////////////////////////////////////////////////////////////////////////////////
@@ -612,7 +647,7 @@ int getAccZ() {
 #if defined TEMP
 /*******************************************************************************
  * Function:    setTempConf() // PRIVATE
- * Input:       None
+ * Input:       None.
  * Output:      None.
  * Overview:    Modifies the configuration register.
  ******************************************************************************/
@@ -641,9 +676,9 @@ void setTempConf() {
 
 /*******************************************************************************
  * Function:    getTempRegister()
- * Input:       None
- * Output:      Ambient temperature.
- * Overview:    Gets the temperature by using MCP9800.
+ * Input:       None.
+ * Output:      None.
+ * Overview:    Gets the 'reg' register value.
  ******************************************************************************/
 void getTempRegister (unsigned int reg){
 
@@ -670,8 +705,8 @@ void getTempRegister (unsigned int reg){
 /*******************************************************************************
  * Function:    getTempConf()
  * Input:       None
- * Output:      Ambient temperature.
- * Overview:    Gets the temperature by using MCP9800.
+ * Output:      Value of the temperature configuration register.
+ * Overview:    Gets the configuration register of the MCP9800.
  ******************************************************************************/
 unsigned int getTempConf() {
 
@@ -721,9 +756,9 @@ unsigned int getTemp (){
 
 /*******************************************************************************
  * Function:    setTempResolution()
- * Input:       None
- * Output:      Ambient temperature.
- * Overview:    Gets the temperature by using MCP9800.
+ * Input:       The new resolution.
+ * Output:      None.
+ * Overview:    Modify the configuration register to set a new resolution.
  ******************************************************************************/
 void setTempResolution (int res){
 
@@ -748,10 +783,10 @@ void setTempResolution (int res){
 }
 
 /*******************************************************************************
- * Function:    setTempResolution()
- * Input:       None
- * Output:      Ambient temperature.
- * Overview:    Gets the temperature by using MCP9800.
+ * Function:    setTempAlert(int reg, INT8 alert)
+ * Input:       The MAX_HIGH or MAX_LOW 'reg' and its new value.
+ * Output:      None.
+ * Overview:    Configures the alert interruption.
  ******************************************************************************/
 void setTempAlert (int reg, INT8 alert){
 
@@ -783,10 +818,10 @@ void setTempAlert (int reg, INT8 alert){
 }
 
 /*******************************************************************************
- * Function:    setTempResolution()
- * Input:       None
- * Output:      Ambient temperature.
- * Overview:    Gets the temperature by using MCP9800.
+ * Function:    setTempLowPower()
+ * Input:       None.
+ * Output:      None.
+ * Overview:    Puts the temperature sensor into a low power status.
  ******************************************************************************/
 void setTempLowPower (){
 
@@ -811,8 +846,8 @@ void setTempLowPower (){
 
 /*******************************************************************************
  * Function:    getTempAlert()
- * Input:       None
- * Output:      NO_ERROR if correct.
+ * Input:       None.
+ * Output:      Boolean.
  * Overview:    Get 'TRUE' if alert. 'FALSE' if no alert.
  ******************************************************************************/
 BOOL getTempAlert (){
@@ -841,7 +876,7 @@ unsigned int getLum (){
 
     unsigned int resultado;
     int i;
-    for (i = 0; i<10; i++) {
+    for (i = 0; i<10; i++) { //Eliminar antiguos valores del ADC
     unsigned int offset = 8* ((~ReadActiveBufferADC10() & 0x01));
     resultado = (ReadADC10(offset));}
     return resultado;
@@ -854,8 +889,8 @@ unsigned int getLum (){
 
 /*******************************************************************************
  * Function:    getPIR()
- * Input:       None
- * Output:      NO_ERROR if correct.
+ * Input:       None.
+ * Output:      Boolean.
  * Overview:    Get 'TRUE' if presence. 'FALSE' if no presence.
  ******************************************************************************/
 BOOL getPIR (){
@@ -875,9 +910,9 @@ BOOL getPIR (){
 #if defined SENSORS
 /*******************************************************************************
  * Function:    LedOn(sensorLed sl)
- * Input:       Led on the Sensors Shield
+ * Input:       Led on the Sensors Shield.
  * Output:      NO_ERROR if correct.
- * Overview:    Simple function to switch on the leds on the sensors shield.
+ * Overview:    Switch on the led 'sl' on the sensors shield.
  ******************************************************************************/
 BYTE LedOn (sensorLed sl){
    switch(sl){
@@ -898,9 +933,9 @@ BYTE LedOn (sensorLed sl){
 
 /*******************************************************************************
  * Function:    LedOff(sensorLed sl)
- * Input:       Led on the Sensors Shield
+ * Input:       Led on the Sensors Shield.
  * Output:      NO_ERROR if correct.
- * Overview:    Simple function to switch off the leds on the sensors shield.
+ * Overview:    Switch off the led 'sl' on the sensors shield.
  ******************************************************************************/
 BYTE LedOff (sensorLed sl){
    switch(sl){
@@ -921,9 +956,9 @@ BYTE LedOff (sensorLed sl){
 
 /*******************************************************************************
  * Function:    LedToggle(sensorLed sl)
- * Input:       Led on the Sensors Shield
+ * Input:       Led on the Sensors Shield.
  * Output:      NO_ERROR if correct.
- * Overview:    Simple function to toggle the leds on the sensors shield.
+ * Overview:    Toggle the led 'sl' on the sensors shield.
  ******************************************************************************/
 BYTE LedToggle (sensorLed sl){
    switch(sl){
@@ -949,10 +984,10 @@ BYTE LedToggle (sensorLed sl){
 
 #if defined SENSORS
 /*******************************************************************************
- * Function:    FuncionDePrueba()
- * Input:       None
- * Output:      Returns the byte containing the status flags.
- * Overview:    Simple function to get (read) the status flags.
+ * Function:    IntTmp()
+ * Input:       None.
+ * Output:      None.
+ * Overview:    Timer interruption routine.
  ******************************************************************************/
 void __ISR(_TIMER_5_VECTOR, ipl7)IntTmp(void) {
 
@@ -1019,10 +1054,10 @@ void __ISR(_TIMER_5_VECTOR, ipl7)IntTmp(void) {
 
 #if defined ACC | defined PIR | defined BUZZ
 /*******************************************************************************
- * Function:    FuncionDePrueba()
- * Input:       None
- * Output:      Returns the byte containing the status flags.
- * Overview:    Simple function to get (read) the status flags.
+ * Function:    enableIntSensors()
+ * Input:       None.
+ * Output:      None.
+ * Overview:    Allow interruptions of the sensor shield.
  ******************************************************************************/
 void enableIntSensors () {
 
@@ -1034,10 +1069,10 @@ void enableIntSensors () {
 }
 
 /*******************************************************************************
- * Function:    FuncionDePrueba()
- * Input:       None
- * Output:      Returns the byte containing the status flags.
- * Overview:    Simple function to get (read) the status flags.
+ * Function:    disableIntSensors()
+ * Input:       None.
+ * Output:      None.
+ * Overview:    Disable interruptions of the sensor shield.
  ******************************************************************************/
 void disableIntSensors () {
 
@@ -1047,10 +1082,10 @@ void disableIntSensors () {
 }
 
 /*******************************************************************************
- * Function:    FuncionDePrueba()
- * Input:       None
- * Output:      Returns the byte containing the status flags.
- * Overview:    Simple function to get (read) the status flags.
+ * Function:    IntCN()
+ * Input:       None.
+ * Output:      None.
+ * Overview:    CN interruption routine.
  ******************************************************************************/
 void __ISR(_CHANGE_NOTICE_VECTOR, ipl6)IntCN(void) {
 

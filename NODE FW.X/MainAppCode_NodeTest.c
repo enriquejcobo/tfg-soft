@@ -147,7 +147,7 @@ INIT_STAGE:
     BYTE cmdBuzzOn[11] = "buzzerOn();";
     BYTE cmdBuzzOff[12] = "buzzerOff();";
     int isBuzzer;
-    int hayDato;
+    int hayDato = 0;
 
     int medidaAccX;
     int medidaAccY;
@@ -1341,7 +1341,7 @@ DEMO_ENRIQUEJCOBO:
     #if defined NODE_1
 
     if (firstTime) {
-       // Parámetros de transmisión
+        // Parámetros de transmisión
 
         TestAddress[0] = 0x00;
         TestAddress[1] = 0x11;
@@ -1395,8 +1395,8 @@ DEMO_ENRIQUEJCOBO:
     Printf(",");
     PrintDec(tempDecimal);
     // Líneas para encender el aire acondicionado
-    /*if ((tempActual >> 8) > 27) {
-        Printf(": Temperatura alta. ");
+    if ((tempActual >> 8) > 27) {
+        //Printf(": Temperatura alta. ");
         if (AAEncendido) {
             Printf("\r\nMantenemos el aire acondicionado encendido.");
         } else {
@@ -1405,7 +1405,7 @@ DEMO_ENRIQUEJCOBO:
             AAEncendido = 1;
         }
     } else if ((tempActual >> 8) < 23) {
-        Printf(": Temperatura baja. ");
+        //Printf(": Temperatura baja. ");
         if (! (AAEncendido)) {
             Printf("\r\nMantenemos el aire acondicionado apagado.");
         } else {
@@ -1414,14 +1414,14 @@ DEMO_ENRIQUEJCOBO:
             AAEncendido = 1;
         }
     } else {
-        Printf(": Temperatura agradable.");
+        //Printf(": Temperatura agradable.");
         if (AAEncendido) {
             Printf("\r\nMantenemos el aire acondicionado encendido.");
         } else {
             Printf("\r\nMantenemos el aire acondicionado apagado.");
         }
     }
-    */
+    
 
     // Acelerómetro
     getAcc();

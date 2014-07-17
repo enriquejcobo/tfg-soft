@@ -36,6 +36,9 @@
 
 // Temperature sensor
 #if defined TEMP
+    #define MAX_HIGH 3
+    #define MAX_LOW 2
+
     unsigned int getTemp();
     unsigned int getTempConf();
     BOOL getTempAlert();
@@ -61,6 +64,8 @@
     int getAccX();
     int getAccY();
     int getAccZ();
+    BOOL getAccInt1();
+    BOOL getAccInt2();
 #endif
 
 // Presence sensor
